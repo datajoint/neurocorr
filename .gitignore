@@ -52,3 +52,6 @@ Thumbs.db
 
 # Downloaded source data
 data/
+
+# Local environment (database credentials)
+.env
