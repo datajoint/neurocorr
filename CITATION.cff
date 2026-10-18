@@ -1,0 +1,43 @@
+cff-version: 1.2.0
+message: >-
+  This repository reimplements, as a DataJoint pipeline, the analysis published in the article
+  below. If you use it, please cite the article.
+title: "neurocorr: Improved estimation and interpretation of correlations in neural circuits, as a DataJoint pipeline"
+type: software
+license: MIT
+repository-code: "https://github.com/datajoint/neurocorr"
+authors:
+  - name: DataJoint
+    website: "https://datajoint.com"
+preferred-citation:
+  type: article
+  title: "Improved estimation and interpretation of correlations in neural circuits"
+  authors:
+    - family-names: Yatsenko
+      given-names: Dimitri
+    - family-names: Josić
+      given-names: Krešimir
+    - family-names: Ecker
+      given-names: Alexander S.
+    - family-names: Froudarakis
+      given-names: Emmanouil
+    - family-names: Cotton
+      given-names: R. James
+    - family-names: Tolias
+      given-names: Andreas S.
+  journal: "PLOS Computational Biology"
+  volume: 11
+  issue: 3
+  start: e1004083
+  year: 2015
+  month: 3
+  doi: "10.1371/journal.pcbi.1004083"
+  url: "https://doi.org/10.1371/journal.pcbi.1004083"
+references:
+  - type: software
+    title: "cov-est: covariance estimation library used in \"Improved Estimation and Interpretation of Correlations in Neural Circuits\""
+    authors:
+      - name: Tolias Lab
+    license: MIT
+    repository-code: "https://github.com/atlab/cov-est"
+    year: 2014
