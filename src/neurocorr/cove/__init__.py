@@ -18,6 +18,7 @@ from neurocorr.cove.crossval import (
 )
 from neurocorr.cove.estimate import condition_moments, corrcov, estimate, nan_cov
 from neurocorr.cove.selection import active_cells
+from neurocorr.cove.tuning import fit_von_mises, tuning_significance, von_mises
 
 __all__ = [
     "DELTAS",
@@ -27,9 +28,12 @@ __all__ = [
     "cross_estimate_hyper",
     "estimate",
     "find_best_delta",
+    "fit_von_mises",
     "fold_assignment",
     "grid",
     "nan_cov",
     "split_trials",
+    "tuning_significance",
     "vloss",
+    "von_mises",
 ]

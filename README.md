@@ -39,6 +39,7 @@ table, and the estimators are ported from its `+cove` package to numpy and scipy
 | `Subject` | Entry | a subject, by its identifier in the original database | (new; `subject_id` of `covest.Traces`) |
 | `TrialTraceSet` | Entry | the binned activity of one imaging site in every trial of one stimulus set | `covest.Traces` |
 | `CellSelection` | Compute | the cells of a correlation set that stay active throughout the recording | `covest.ActiveCells` |
+| `OriTuning` | Compute | the von Mises orientation tuning of every cell of a tuning set, with its significance by 10,000 shuffles | `covest.OriTuning` |
 | `Method` | Lookup | a covariance estimator and the grids of its hyperparameters | `covest.Method` |
 | `Fold` | Lookup | a fold of 10-fold cross-validation, or all trials (`nfolds = 1`) | `covest.Fold` |
 | `CovMatrix` | Compute | a correlation matrix estimated on a fold's training trials, its hyperparameters, and its validation loss on the fold's test trials | `covest.CovMatrix` |
@@ -101,6 +102,15 @@ All grids step by 0.05 in natural log. As in the original:
   72).
 - **Method 91** caps the rank of L instead of penalizing it; no library solves that problem, so it
   runs the original's ADMM, ported to numpy.
+
+### Orientation tuning
+
+`OriTuning` fits each cell's mean response per direction (the sum of the evoked bins of a trial)
+with a two-peaked von Mises curve, f(φ) = a + b exp(κ(cos(φ − θ) − 1)) + c exp(κ(cos(φ − θ + π) − 1))
+with b ≥ c ≥ 0, by the original's search (seven starting directions, then parabolic steps in θ
+and a bisection in κ). R² is computed against single trials, and its p-value from 10,000 shuffles
+of the direction-trial labels, the same for all cells; a cell is tuned if p < 0.05. At site 2031,
+219 of 292 cells are tuned.
 
 ### Cross-validation
 

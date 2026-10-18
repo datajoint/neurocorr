@@ -5,8 +5,8 @@ A translation of the DataJoint MATLAB schema ``covest`` in https://github.com/at
 (MIT License, (c) 2014 Tolias Lab), with each table named for what one row is:
 
     SourceFile ──> SourceImport ··· fills ···> Subject ──> TrialTraceSet ──> CellSelection ──┐
-                                                                                     Method ├──> CovMatrix
-                                                                                       Fold ┘
+                                                                    │                Method ├──> CovMatrix
+                                                                    └──> OriTuning     Fold ┘
 
 The MATLAB schema's ``Traces`` (here ``TrialTraceSet``) was copied from an upstream lab
 pipeline, ``pop.TrialTraceSet``. Here, the published data files are its source:
@@ -120,6 +120,58 @@ class CellSelection(dj.Compute):
         X, evoked_bins = (TrialTraceSet & key).fetch1("trace_segments", "evoked_bins")
         selection = cove.active_cells(np.asarray(X), evoked_bins)
         self.insert1({**key, "ncells": int(selection.sum()), "selection": selection})
+
+
+@schema
+class OriTuning(dj.Compute):
+    definition = """
+    # The von Mises orientation tuning of every cell of a 16-direction trial trace set, with its significance by shuffling
+    -> TrialTraceSet
+    ---
+    nshuffles   : int16
+    von_p_value : <npy@>      # nneurons: shuffle p-values
+    von_r2      : <npy@>      # nneurons: R-squared of the fit against single-trial responses
+    von_pref    : <npy@>      # nneurons: preferred direction, radians in [0, 2 pi)
+    von_base    : <npy@>      # nneurons: base
+    von_amp1    : <npy@>      # nneurons: amplitude at the preferred direction
+    von_amp2    : <npy@>      # nneurons: amplitude at the opposite direction
+    von_sharp   : <npy@>      # nneurons: sharpness
+    """
+
+    n_shuffles = 10000
+
+    @property
+    def key_source(self):
+        return super().key_source & (TrialTraceSet & "ndirs >= 8").proj()
+
+    def make(self, key):
+        """Fit each cell's mean response over the evoked bins and test its tuning by shuffling.
+
+        The response of a trial is the sum of its evoked bins. A two-peaked von Mises curve is
+        fit to each cell's mean response per direction; R-squared is computed against single
+        trials, and its p-value from 10,000 shuffles of the direction-trial labels, the same for
+        all cells (``+covest/OriTuning.m``, ``+cove/VonMises2.m``).
+        """
+        X, evoked_bins = (TrialTraceSet & key).fetch1("trace_segments", "evoked_bins")
+        X = np.asarray(X, dtype=np.float64)
+        responses = (
+            X[: min(evoked_bins, X.shape[0])].sum(axis=0).transpose(2, 0, 1)
+        )  # cells x dirs x trials
+        rng = np.random.default_rng([key["aod_scan_start_time"], self.n_shuffles])
+        w, r2, p = cove.tuning_significance(responses, self.n_shuffles, rng)
+        self.insert1(
+            {
+                **key,
+                "nshuffles": self.n_shuffles,
+                "von_p_value": p.astype(np.float32),
+                "von_r2": r2.astype(np.float32),
+                "von_pref": w[:, 4].astype(np.float32),
+                "von_base": w[:, 0].astype(np.float32),
+                "von_amp1": w[:, 1].astype(np.float32),
+                "von_amp2": w[:, 2].astype(np.float32),
+                "von_sharp": w[:, 3].astype(np.float32),
+            }
+        )
 
 
 @schema
