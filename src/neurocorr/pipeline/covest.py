@@ -49,6 +49,11 @@ class SourceImport(dj.Ingest):
     """
 
     def make(self, key):
+        """Download the source file if needed, verify its SHA-256, and insert its recordings into Traces.
+
+        Each record of the file is one row of the original ``covest.Traces``: one imaging site and
+        stimulus set. Recordings already present are left as they are.
+        """
         path = fetch(key["source_file"], (SourceFile & key).fetch1("sha256"))
         rows = [to_row(record) for record in read_records(path)]
         Traces.insert(rows, skip_duplicates=True)
@@ -94,6 +99,12 @@ class ActiveCells(dj.Compute):
         return super().key_source & {"high_repeats": True}
 
     def make(self, key):
+        """Keep the cells active in every quarter of the recording.
+
+        Over the evoked bins, in trial order, a cell's total activity in each quarter of the
+        trials must exceed 1% of the median quarter total across cells and 1% of its own most
+        active quarter (``+covest/ActiveCells.m``).
+        """
         X, evoked_bins = (Traces & key).fetch1("trace_segments", "evoked_bins")
         selection = cove.active_cells(np.asarray(X), evoked_bins)
         self.insert1({**key, "ncells": int(selection.sum()), "selection": selection})
@@ -195,6 +206,15 @@ class CovMatrix(dj.Compute):
         return super().key_source & {"preprocess_method_num": 5} & eligible.proj()
 
     def make(self, key):
+        """Estimate the noise correlations of the active cells on the fold's training trials.
+
+        Hyperparameters are chosen by 10-fold cross-validation within the training trials: a
+        random search on the method's grids seeds a pattern search, each point scored by the
+        normal validation loss with the variance regularization delta chosen per inner fold.
+        The estimate is then refit on all training trials and scored on the fold's test trials
+        (``cv_loss``). With ``nfolds = 1`` the training trials are all the trials and there is
+        no test loss (``+covest/CovMatrix.m``).
+        """
         start = time.time()
         X, evoked_bins = (Traces & key).fetch1("trace_segments", "evoked_bins")
         selection = np.asarray((ActiveCells & key).fetch1("selection"), dtype=bool)
