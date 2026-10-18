@@ -4,5 +4,12 @@
         "port": 5432,
         "backend": "postgresql",
         "user": "datajoint"
+    },
+    "stores": {
+        "default": "main",
+        "main": {
+            "protocol": "file",
+            "location": "data/store"
+        }
     }
 }

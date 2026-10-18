@@ -37,10 +37,14 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 dependencies = [
-    "datajoint[postgres]>=2.3.4",
+    # <npy@> in the default store needs a fix that is on master, after the 2.3.4 release
+    "datajoint[postgres] @ git+https://github.com/datajoint/datajoint-python.git@master",
     "numpy",
     "scipy",
 ]
+
+[project.optional-dependencies]
+s3 = ["s3fs"]
 
 [project.urls]
 Homepage = "https://github.com/datajoint/neurocorr"
@@ -64,6 +68,9 @@ dev = [
     {include-group = "test"},
     {include-group = "lint"},
 ]
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.targets.sdist]
 include = [

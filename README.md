@@ -60,6 +60,14 @@ recorded with 3D random-access two-photon microscopy. Activity is inferred firin
 `trace_segments` is a bins × directions × trials × cells array, padded with NaN where a direction
 has fewer trials than others.
 
+### Storage
+
+Every array (traces, cell positions, correlation matrices, means, variances, search traces) is a
+`<npy@>` attribute: a standard `.npy` file in the default object store, at a path that mirrors the
+schema, fetched lazily (`np.asarray` loads it). `datajoint.json` points the default store at
+`data/store` in the repository; any file, S3, GCS, or Azure store works (`DJ_STORES` or the
+`stores` section of `datajoint.json`).
+
 ### Estimators
 
 | `method` | Estimator | Hyperparameters |
@@ -100,6 +108,7 @@ uv sync --group dev            # or: pip install -e .
 # start a local PostgreSQL database
 cd local && docker compose up -d && cd ..
 mkdir -p .secrets && echo datajoint > .secrets/database.password
+mkdir -p data/store            # the default object store in datajoint.json
 ```
 
 ```python
@@ -114,6 +123,10 @@ The data files are cached in `~/.cache/neurocorr`, or in the directory named by
 `NEUROCORR_DATA_DIR`. Schema names take the prefix in the `DATABASE_PREFIX` environment variable.
 
 ## Configuration
+
+The bare `<npy@>` form needs datajoint-python after release 2.3.4, so the dependency points at its
+`master` branch until the next release. For an S3-compatible store, install the `s3` extra
+(`pip install -e ".[s3]"`).
 
 `datajoint.json` holds the non-secret settings; credentials come from `.secrets/` or the `DJ_USER`
 and `DJ_PASS` environment variables. To use MySQL instead of PostgreSQL, set `DJ_BACKEND=mysql`,

@@ -10,8 +10,14 @@ import pytest
 
 
 @pytest.fixture(scope="session")
-def postgres_container():
-    """Start a PostgreSQL container for the test session."""
+def postgres_container(tmp_path_factory):
+    """Start a PostgreSQL container for the test session, with a file store for arrays."""
+    import datajoint as dj
+
+    dj.config.stores = {
+        "default": "main",
+        "main": {"protocol": "file", "location": str(tmp_path_factory.mktemp("store"))},
+    }
     if os.environ.get("DJ_USE_EXTERNAL_DB"):
         yield None
         return

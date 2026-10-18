@@ -70,12 +70,12 @@ class Traces(dj.Entry):
     bin_ms                : int16      # bin duration
     evoked_bins           : int16      # bins driven by the stimulus; the remaining bins are spontaneous
     nneurons              : int16
-    cell_xyz              : <blob>     # nneurons x 3: cell centers, µm from the center of the scan
-    cellnums              : <blob>     # nneurons: cell numbers in the original segmentation
+    cell_xyz              : <npy@>      # nneurons x 3: cell centers, µm from the center of the scan
+    cellnums              : <npy@>      # nneurons: cell numbers in the original segmentation
     ndirs                 : int16      # number of grating directions
-    directions            : <blob>     # ndirs: degrees
-    ntrials               : <blob>     # ndirs: trials of each direction
-    trace_segments        : <blob>     # bins x ndirs x trials x nneurons, float32, NaN-padded to the most trials
+    directions            : <npy@>      # ndirs: degrees
+    ntrials               : <npy@>      # ndirs: trials of each direction
+    trace_segments        : <npy@>      # bins x ndirs x trials x nneurons, float32, NaN-padded to the most trials
     """
 
 
@@ -86,7 +86,7 @@ class ActiveCells(dj.Compute):
     -> Traces
     ---
     ncells    : int16
-    selection : <blob>      # nneurons booleans
+    selection : <npy@>       # nneurons booleans
     """
 
     @property
@@ -95,7 +95,7 @@ class ActiveCells(dj.Compute):
 
     def make(self, key):
         X, evoked_bins = (Traces & key).fetch1("trace_segments", "evoked_bins")
-        selection = cove.active_cells(X, evoked_bins)
+        selection = cove.active_cells(np.asarray(X), evoked_bins)
         self.insert1({**key, "ncells": int(selection.sum()), "selection": selection})
 
 
@@ -170,15 +170,15 @@ class CovMatrix(dj.Compute):
     -> Method
     -> Fold
     ---
-    means           : <blob>         # bins x conditions x 1 x ncells
-    variances       : <blob>         # bins x conditions x 1 x ncells
-    corr_matrix     : <blob>         # ncells x ncells correlation matrix
-    sparse = null   : <blob>         # sparse component of the precision matrix
-    lowrank = null  : <blob>         # low-rank component: loadings or latent factors
-    hypers = null   : <blob>         # the chosen hyperparameter values
+    means           : <npy@>          # bins x conditions x 1 x ncells
+    variances       : <npy@>          # bins x conditions x 1 x ncells
+    corr_matrix     : <npy@>          # ncells x ncells correlation matrix
+    sparse = null   : <npy@>          # sparse component of the precision matrix
+    lowrank = null  : <npy@>          # low-rank component: loadings or latent factors
+    hypers = null   : <npy@>          # the chosen hyperparameter values
     delta           : float64        # variance regularization toward each cell's mean variance
-    visited = null  : <blob>         # grid indices visited by the hyperparameter search (0-based)
-    losses = null   : <blob>         # mean inner validation loss at each visited index
+    visited = null  : <npy@>          # grid indices visited by the hyperparameter search (0-based)
+    losses = null   : <npy@>          # mean inner validation loss at each visited index
     sparsity = 0    : float64        # fraction of zero off-diagonal entries in the sparse component
     cv_loss = null  : float64        # validation loss on the test trials of the fold (nfolds > 1)
     host            : varchar(255)
@@ -197,10 +197,10 @@ class CovMatrix(dj.Compute):
     def make(self, key):
         start = time.time()
         X, evoked_bins = (Traces & key).fetch1("trace_segments", "evoked_bins")
-        selection = (ActiveCells & key).fetch1("selection")
+        selection = np.asarray((ActiveCells & key).fetch1("selection"), dtype=bool)
         method = (Method & key).fetch1()
 
-        X = np.asarray(X, dtype=np.float64)[..., selection.astype(bool)]
+        X = np.asarray(X, dtype=np.float64)[..., selection]
         if not method["include_spont"]:
             X = X[:evoked_bins]
         if method["condition_idx"]:
