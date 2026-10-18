@@ -172,6 +172,53 @@ class Method(dj.Lookup):
                 {"name": "correlation_shrinkage", "log": [-4, 0, 0.05]},
             ],
         },
+        {
+            "method": 30,
+            "include_spont": True,
+            "condition_idx": 0,
+            "regularization": "factor",
+            "hyperparam_space": [
+                {"name": "variance_shrinkage", "log": [-6, -1, 0.05]},
+                {"name": "n_factors", "range": [0, 70]},
+            ],
+        },
+        {
+            "method": 80,
+            "include_spont": True,
+            "condition_idx": 0,
+            "regularization": "glasso",
+            "hyperparam_space": [{"name": "alpha", "log": [-5, -1, 0.05]}],
+        },
+        {
+            "method": 90,
+            "include_spont": True,
+            "condition_idx": 0,
+            "regularization": "lv-glasso",
+            "hyperparam_space": [
+                {"name": "alpha", "log": [-7, -1, 0.05]},
+                {"name": "beta", "log": [-5, -1, 0.05]},
+            ],
+        },
+        {
+            "method": 91,
+            "include_spont": True,
+            "condition_idx": 0,
+            "regularization": "lv-glasso refit",
+            "hyperparam_space": [
+                {"name": "alpha", "log": [-7, -1, 0.05]},
+                {"name": "max_latent", "range": [0, 100]},
+            ],
+        },
+        {
+            "method": 100,
+            "include_spont": True,
+            "condition_idx": 0,
+            "regularization": "lv-glasso",
+            "hyperparam_space": [
+                {"name": "alpha", "log": [-7, -1.5, 0.05]},
+                {"name": "beta", "log": [-5, -1.5, 0.05]},
+            ],
+        },
     ]
 
 

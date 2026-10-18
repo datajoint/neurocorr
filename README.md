@@ -76,14 +76,31 @@ schema, fetched lazily (`np.asarray` loads it). `datajoint.json` points the defa
 
 ### Estimators
 
-| `method` | Estimator | Hyperparameters |
-|---|---|---|
-| 0 | sample correlation, all bins | none |
-| 1 | sample correlation, evoked bins only | none |
-| 2, 3 | sample correlation, evoked bins of one direction (two-direction sites) | none |
-| 10 | shrinkage toward a diagonal target (C<sub>diag</sub>) | variance shrinkage toward the median variance; correlation shrinkage toward zero |
+| `method` | Estimator | Hyperparameters (grid) | Python implementation |
+|---|---|---|---|
+| 0 | sample correlation, all bins | none | numpy |
+| 1 | sample correlation, evoked bins only | none | numpy |
+| 2, 3 | sample correlation, evoked bins of one direction (two-direction sites) | none | numpy |
+| 10 | shrinkage toward a diagonal target (C<sub>diag</sub>) | variance shrinkage toward the median, e<sup>−6</sup>…e<sup>−1</sup>; correlation shrinkage toward zero, e<sup>−4</sup>…1 | numpy |
+| 30 | factor analysis: low rank plus diagonal (C<sub>factor</sub>) | variance shrinkage, e<sup>−6</sup>…e<sup>−1</sup>; factors, 0…70 | scipy: maximum likelihood by L-BFGS-B, loadings in closed form |
+| 80 | sparse precision, graphical lasso (C<sub>sparse</sub>) | α, e<sup>−5</sup>…e<sup>−1</sup> | gglasso ADMM |
+| 90 | sparse plus latent (C<sub>sparse+latent</sub>) | α, e<sup>−7</sup>…e<sup>−1</sup>; β, e<sup>−5</sup>…e<sup>−1</sup> | gglasso ADMM |
+| 91 | sparse plus latent with the number of latent units capped (Fig 7) | α, e<sup>−7</sup>…e<sup>−1</sup>; at most 0…100 latent units; β = 0.001 | numpy port of the original ADMM |
+| 100 | sparse plus latent, narrower grid (Figs 5, 6, S1) | α, e<sup>−7</sup>…e<sup>−1.5</sup>; β, e<sup>−5</sup>…e<sup>−1.5</sup> | gglasso ADMM |
 
-The factor-analysis, sparse (graphical lasso), and sparse + latent estimators of the paper are next.
+All grids step by 0.05 in natural log. As in the original:
+
+- **Factor analysis** shrinks the variances toward their median before the fit. The fit is the same
+  maximum-likelihood factor model as the original's EM; it converges where the EM's 200-cycle cap
+  stops short.
+- **Sparse and sparse plus latent** fit the covariance scaled to unit mean variance and penalize
+  the whole of S, diagonal included: minimize tr(Σ(S − L)) − log det(S − L) + α Σ|S<sub>ij</sub>| +
+  β tr(L) with L positive semidefinite (Eq. 18 with the penalties in the original's units, without
+  the 1/p). gglasso's solver reaches the same optimum as regain and cvxpy; at the paper's S1 optimum
+  for site 2031 (α ≈ 0.017, β ≈ 0.15) it gives 93.45% sparsity and 73 latent units (paper: 92.8%,
+  72).
+- **Method 91** caps the rank of L instead of penalizing it; no library solves that problem, so it
+  runs the original's ADMM, ported to numpy.
 
 ### Cross-validation
 

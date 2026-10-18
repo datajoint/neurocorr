@@ -14,6 +14,14 @@ from collections.abc import Sequence
 
 import numpy as np
 
+from neurocorr.cove.structured import (
+    factor_analysis,
+    low_rank_factors,
+    sparse_latent,
+    sparse_latent_capped,
+    sparsity,
+)
+
 
 def corrcov(C: np.ndarray) -> np.ndarray:
     """Convert a covariance matrix to a correlation matrix."""
@@ -61,7 +69,7 @@ def estimate(
     ----------
     X : array (bins, conditions, trials, cells)
     evoked_bins : the number of bins driven by the stimulus; later bins are spontaneous
-    regularization : 'sample' or 'diag'
+    regularization : 'sample', 'diag', 'factor', 'glasso', 'lv-glasso', or 'lv-glasso refit'
     hypers : the hyperparameter values, in the order of the method's grids
 
     Returns
@@ -70,7 +78,9 @@ def estimate(
     M : (bins, conditions, 1, cells) mean responses
     V : (bins, conditions, 1, cells) variances; for a regularized estimate, scaled by the
         change in each cell's variance that the regularization made
-    extras : additional parts of the estimate (empty for 'sample' and 'diag')
+    extras : additional parts of the estimate: ``sparse`` (the sparse component of the
+        precision matrix, in the units of the covariance), ``lowrank`` (factor loadings, or the
+        latent factors H with H H' the low-rank component), and ``sparsity``
     """
     X = np.asarray(X, dtype=np.float64)
     p = X.shape[3]
@@ -94,8 +104,35 @@ def estimate(
         s = np.sqrt((1 - variance_shrinkage) * v + variance_shrinkage * np.median(v))
         r = (1 - correlation_shrinkage) * corrcov(C) + correlation_shrinkage * np.eye(p)
         C = r * np.outer(s, s)
+    elif regularization == "factor":
+        # shrink the variances toward their median, then fit the factor model
+        variance_shrinkage, n_factors = hypers
+        v = np.diag(C)
+        s = np.sqrt((1 - variance_shrinkage) * v + variance_shrinkage * np.median(v))
+        L, psi = factor_analysis(corrcov(C) * np.outer(s, s), round(n_factors))
+        extras["lowrank"] = L
+        C = L @ L.T + np.diag(psi)
+    elif regularization in ("glasso", "lv-glasso", "lv-glasso refit"):
+        # the solvers see the covariance scaled to unit mean variance
+        scale = np.mean(np.diag(C))
+        if regularization == "glasso":
+            (alpha,) = hypers
+            S, L = sparse_latent(C / scale, alpha)
+        elif regularization == "lv-glasso":
+            alpha, beta = hypers
+            S, L = sparse_latent(C / scale, alpha, beta)
+        else:
+            alpha, max_rank = hypers
+            S, L = sparse_latent_capped(C / scale, alpha, round(max_rank))
+        S, L = S / scale, L / scale
+        H = low_rank_factors(L)
+        extras.update(sparse=S, sparsity=sparsity(S))
+        if H.shape[1]:
+            extras["lowrank"] = H
+        C = np.linalg.inv(S - H @ H.T)
+        C = (C + C.T) / 2
     else:
-        raise NotImplementedError(f"regularization {regularization!r}")
+        raise ValueError(f"unknown regularization {regularization!r}")
 
     R = C / np.outer(sigma, sigma)
     if regularization != "sample":
