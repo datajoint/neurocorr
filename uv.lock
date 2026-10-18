@@ -748,6 +748,9 @@ dependencies = [
 postgres = [
     { name = "psycopg2-binary" },
 ]
+s3 = [
+    { name = "s3fs" },
+]
 
 [[package]]
 name = "deepdiff"
@@ -1188,7 +1191,7 @@ dependencies = [
 
 [package.optional-dependencies]
 s3 = [
-    { name = "s3fs" },
+    { name = "datajoint", extra = ["s3"] },
 ]
 
 [package.dev-dependencies]
@@ -1210,8 +1213,8 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "datajoint", extras = ["postgres"], git = "https://github.com/datajoint/datajoint-python.git?rev=master" },
+    { name = "datajoint", extras = ["s3"], marker = "extra == 's3'", git = "https://github.com/datajoint/datajoint-python.git?rev=master" },
     { name = "numpy" },
-    { name = "s3fs", marker = "extra == 's3'" },
     { name = "scipy" },
 ]
 provides-extras = ["s3"]

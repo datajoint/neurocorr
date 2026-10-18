@@ -44,7 +44,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-s3 = ["s3fs"]
+# S3-compatible stores (datajoint's own s3 extra: s3fs)
+s3 = ["datajoint[s3] @ git+https://github.com/datajoint/datajoint-python.git@master"]
 
 [project.urls]
 Homepage = "https://github.com/datajoint/neurocorr"

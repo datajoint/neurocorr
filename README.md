@@ -132,7 +132,7 @@ The data files are cached in `~/.cache/neurocorr`, or in the directory named by
 
 The bare `<npy@>` form needs datajoint-python after release 2.3.4, so the dependency points at its
 `master` branch until the next release. For an S3-compatible store, install the `s3` extra
-(`pip install -e ".[s3]"`).
+(`pip install -e ".[s3]"`), which installs DataJoint's own `s3` extra (s3fs).
 
 `datajoint.json` holds the non-secret settings; credentials come from `.secrets/` or the `DJ_USER`
 and `DJ_PASS` environment variables. To use MySQL instead of PostgreSQL, set `DJ_BACKEND=mysql`,
