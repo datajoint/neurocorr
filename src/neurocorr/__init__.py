@@ -15,7 +15,7 @@ Structure
 Example
 -------
 >>> from neurocorr.pipeline import covest
->>> covest.Traces()
+>>> covest.TrialTraceSet()
 """
 
 __version__ = "0.1.0"

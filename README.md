@@ -35,17 +35,23 @@ table, and the estimators are ported from its `+cove` package to numpy and scipy
 | Table | Tier | One row is | Original |
 |---|---|---|---|
 | `SourceFile` | Lookup | a data file published with the original code, with its SHA-256 | (new) |
-| `SourceImport` | Ingest | the import of one file's recordings into `Traces` | (new) |
-| `Traces` | Entry | the binned activity of one imaging site in every trial of one stimulus set | `covest.Traces` |
-| `ActiveCells` | Compute | the cells of a correlation set that stay active throughout the recording | `covest.ActiveCells` |
+| `SourceImport` | Ingest | the import of one file's subjects and trial trace sets | (new) |
+| `Subject` | Entry | a subject, by its identifier in the original database | (new; `subject_id` of `covest.Traces`) |
+| `TrialTraceSet` | Entry | the binned activity of one imaging site in every trial of one stimulus set | `covest.Traces` |
+| `CellSelection` | Compute | the cells of a correlation set that stay active throughout the recording | `covest.ActiveCells` |
 | `Method` | Lookup | a covariance estimator and the grids of its hyperparameters | `covest.Method` |
 | `Fold` | Lookup | a fold of 10-fold cross-validation, or all trials (`nfolds = 1`) | `covest.Fold` |
 | `CovMatrix` | Compute | a correlation matrix estimated on a fold's training trials, its hyperparameters, and its validation loss on the fold's test trials | `covest.CovMatrix` |
 
-`SourceImport` stands in for the upstream lab pipeline that filled the original `Traces`: it
-downloads a file, verifies it, and inserts its recordings into `Traces`, which keeps the original
-table unchanged. `Traces` has no foreign key to `SourceImport` (fan-out ingestion), so the diagram
-draws them apart.
+Each table is named for what one row is, so two tables of the original are renamed:
+`covest.Traces` is `TrialTraceSet` (the name of the lab table it was copied from,
+`pop.TrialTraceSet`), and `covest.ActiveCells` is `CellSelection`. `Subject` is new: the
+recordings carry a `subject_id` and nothing else about the subject. All 60 records carry
+`subject_id` 16, although the paper reports 14 mice; the data keep no other animal identifier.
+
+`SourceImport` stands in for the upstream lab pipeline that filled the original table: it
+downloads a file, verifies it, and inserts its subjects and trial trace sets. Neither table has a
+foreign key to `SourceImport` (fan-out ingestion), so the diagram draws them apart.
 
 ### The data
 
@@ -114,8 +120,8 @@ mkdir -p data/store            # the default object store in datajoint.json
 ```python
 from neurocorr.pipeline import covest
 
-covest.SourceImport.populate()       # downloads the four data files (218 MB); 60 rows of Traces
-covest.ActiveCells.populate()        # 31 correlation sets; 27 keep more than 100 cells
+covest.SourceImport.populate()       # downloads the four data files (218 MB); 60 trial trace sets
+covest.CellSelection.populate()      # 31 correlation sets; 27 keep more than 100 cells
 covest.CovMatrix.populate()          # every method, site, and fold
 ```
 

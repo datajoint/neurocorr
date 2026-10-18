@@ -133,7 +133,7 @@ def read_records(path: Path) -> list[Record]:
 
 
 def to_row(record: Record) -> dict:
-    """A ``covest.Traces`` row from a source record."""
+    """A ``covest.TrialTraceSet`` row from a source record."""
     return {
         "subject_id": record.subject_id,
         "setup": record.setup,

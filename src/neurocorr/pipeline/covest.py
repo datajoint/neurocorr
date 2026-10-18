@@ -2,15 +2,15 @@
 Noise-correlation estimation schema.
 
 A translation of the DataJoint MATLAB schema ``covest`` in https://github.com/atlab/cov-est
-(MIT License, (c) 2014 Tolias Lab):
+(MIT License, (c) 2014 Tolias Lab), with each table named for what one row is:
 
-    SourceFile ──> SourceImport ··· fills ···> Traces ──> ActiveCells ──┐
-                                                                 Method ├──> CovMatrix
-                                                                   Fold ┘
+    SourceFile ──> SourceImport ··· fills ···> Subject ──> TrialTraceSet ──> CellSelection ──┐
+                                                                                     Method ├──> CovMatrix
+                                                                                       Fold ┘
 
-The MATLAB schema's ``Traces`` was filled from an upstream lab pipeline. Here, the published
-data files are its source: ``SourceImport`` reads each file and inserts its recordings into
-``Traces`` (fan-out ingestion), which keeps the original table unchanged.
+The MATLAB schema's ``Traces`` (here ``TrialTraceSet``) was copied from an upstream lab
+pipeline, ``pop.TrialTraceSet``. Here, the published data files are its source:
+``SourceImport`` reads each file and inserts its subjects and trace sets (fan-out ingestion).
 """
 
 import os
@@ -42,29 +42,41 @@ class SourceFile(dj.Lookup):
 @schema
 class SourceImport(dj.Ingest):
     definition = """
-    # The import of a source file's recordings into Traces
+    # The import of one source file's subjects and trial trace sets
     -> SourceFile
     ---
     n_records : int16
     """
 
     def make(self, key):
-        """Download the source file if needed, verify its SHA-256, and insert its recordings into Traces.
+        """Download the source file if needed, verify its SHA-256, and insert its records.
 
-        Each record of the file is one row of the original ``covest.Traces``: one imaging site and
-        stimulus set. Recordings already present are left as they are.
+        Each record of the file is one row of the original ``covest.Traces``: the trial traces
+        of one imaging site for one stimulus set. Its subject goes into Subject and the record
+        into TrialTraceSet; rows already present are left as they are.
         """
         path = fetch(key["source_file"], (SourceFile & key).fetch1("sha256"))
         rows = [to_row(record) for record in read_records(path)]
-        Traces.insert(rows, skip_duplicates=True)
+        Subject.insert(
+            ({"subject_id": row["subject_id"]} for row in rows), skip_duplicates=True
+        )
+        TrialTraceSet.insert(rows, skip_duplicates=True)
         self.insert1({**key, "n_records": len(rows)})
 
 
 @schema
-class Traces(dj.Entry):
+class Subject(dj.Entry):
     definition = """
-    # Binned activity of a population in every trial of a stimulus set, aligned on stimulus onset
-    subject_id            : int32
+    # A subject of the study, by its identifier in the original database
+    subject_id : int32
+    """
+
+
+@schema
+class TrialTraceSet(dj.Entry):
+    definition = """
+    # The binned activity of one imaging site in every trial of one stimulus set, aligned on stimulus onset
+    -> Subject
     setup                 : int16
     session_start_time    : int64      # the session's identifier in the original database
     aod_scan_start_time   : int64      # the scan's identifier in the original database: one imaging site
@@ -75,23 +87,23 @@ class Traces(dj.Entry):
     bin_ms                : int16      # bin duration
     evoked_bins           : int16      # bins driven by the stimulus; the remaining bins are spontaneous
     nneurons              : int16
-    cell_xyz              : <npy@>      # nneurons x 3: cell centers, µm from the center of the scan
-    cellnums              : <npy@>      # nneurons: cell numbers in the original segmentation
+    cell_xyz              : <npy@>     # nneurons x 3: cell centers, µm from the center of the scan
+    cellnums              : <npy@>     # nneurons: cell numbers in the original segmentation
     ndirs                 : int16      # number of grating directions
-    directions            : <npy@>      # ndirs: degrees
-    ntrials               : <npy@>      # ndirs: trials of each direction
-    trace_segments        : <npy@>      # bins x ndirs x trials x nneurons, float32, NaN-padded to the most trials
+    directions            : <npy@>     # ndirs: degrees
+    ntrials               : <npy@>     # ndirs: trials of each direction
+    trace_segments        : <npy@>     # bins x ndirs x trials x nneurons, float32, NaN-padded to the most trials
     """
 
 
 @schema
-class ActiveCells(dj.Compute):
+class CellSelection(dj.Compute):
     definition = """
-    # Cells active throughout the recording, selected for the noise-correlation analysis
-    -> Traces
+    # The cells of a trial trace set that stay active throughout the recording, for the noise-correlation analysis
+    -> TrialTraceSet
     ---
     ncells    : int16
-    selection : <npy@>       # nneurons booleans
+    selection : <npy@>      # nneurons booleans
     """
 
     @property
@@ -105,7 +117,7 @@ class ActiveCells(dj.Compute):
         trials must exceed 1% of the median quarter total across cells and 1% of its own most
         active quarter (``+covest/ActiveCells.m``).
         """
-        X, evoked_bins = (Traces & key).fetch1("trace_segments", "evoked_bins")
+        X, evoked_bins = (TrialTraceSet & key).fetch1("trace_segments", "evoked_bins")
         selection = cove.active_cells(np.asarray(X), evoked_bins)
         self.insert1({**key, "ncells": int(selection.sum()), "selection": selection})
 
@@ -177,7 +189,7 @@ class Fold(dj.Lookup):
 class CovMatrix(dj.Compute):
     definition = """
     # Noise correlations estimated on the training trials of a fold, and their validation loss on its test trials
-    -> ActiveCells
+    -> CellSelection
     -> Method
     -> Fold
     ---
@@ -200,9 +212,9 @@ class CovMatrix(dj.Compute):
     @property
     def key_source(self):
         # the paper's sites; condition-specific methods only on sites with two directions
-        eligible = (ActiveCells & "ncells > 100") * Traces.proj("ndirs") * Method.proj(
-            "condition_idx"
-        ) & "ndirs = 2 OR condition_idx = 0"
+        eligible = (CellSelection & "ncells > 100") * TrialTraceSet.proj(
+            "ndirs"
+        ) * Method.proj("condition_idx") & "ndirs = 2 OR condition_idx = 0"
         return super().key_source & {"preprocess_method_num": 5} & eligible.proj()
 
     def make(self, key):
@@ -216,8 +228,8 @@ class CovMatrix(dj.Compute):
         no test loss (``+covest/CovMatrix.m``).
         """
         start = time.time()
-        X, evoked_bins = (Traces & key).fetch1("trace_segments", "evoked_bins")
-        selection = np.asarray((ActiveCells & key).fetch1("selection"), dtype=bool)
+        X, evoked_bins = (TrialTraceSet & key).fetch1("trace_segments", "evoked_bins")
+        selection = np.asarray((CellSelection & key).fetch1("selection"), dtype=bool)
         method = (Method & key).fetch1()
 
         X = np.asarray(X, dtype=np.float64)[..., selection]

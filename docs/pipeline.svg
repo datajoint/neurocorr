@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="386pt" height="256pt" viewBox="0.00 0.00 386.00 256.00">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="534pt" height="203pt" viewBox="0.00 0.00 534.00 203.00">
 <style>
 @media (prefers-color-scheme: dark) {
   svg { background-color: #161A21; }
@@ -32,12 +32,12 @@
   [fill=&quot;#171c39&quot;] { fill: #8A93A1; }
 }
 </style>
-<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 252)">
-<polygon fill="white" stroke="none" points="-4,4 -4,-252 382.14,-252 382.14,4 -4,4"/>
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 199)">
+<polygon fill="white" stroke="none" points="-4,4 -4,-199 529.97,-199 529.97,4 -4,4"/>
 <g id="clust1" class="cluster">
 <title>cluster_cluster_covest</title>
-<path fill="none" stroke="#171d3a" stroke-dasharray="5,2" d="M20,-8C20,-8 358.14,-8 358.14,-8 364.14,-8 370.14,-14 370.14,-20 370.14,-20 370.14,-228 370.14,-228 370.14,-234 364.14,-240 358.14,-240 358.14,-240 20,-240 20,-240 14,-240 8,-234 8,-228 8,-228 8,-20 8,-20 8,-14 14,-8 20,-8"/>
-<text xml:space="preserve" text-anchor="middle" x="342.64" y="-222.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#171c39">covest</text>
+<path fill="none" stroke="#171d3a" stroke-dasharray="5,2" d="M20,-8C20,-8 505.97,-8 505.97,-8 511.97,-8 517.97,-14 517.97,-20 517.97,-20 517.97,-175 517.97,-175 517.97,-181 511.97,-187 505.97,-187 505.97,-187 20,-187 20,-187 14,-187 8,-181 8,-175 8,-175 8,-20 8,-20 8,-14 14,-8 20,-8"/>
+<text xml:space="preserve" text-anchor="middle" x="490.47" y="-169.7" font-family="Helvetica,sans-Serif" font-size="14.00" fill="#171c39">covest</text>
 </g>
 <!-- covest.SourceFile -->
 <g id="node1" class="node">
@@ -62,70 +62,84 @@
 <title>covest.SourceFile-&gt;covest.SourceImport</title>
 <path fill="none" stroke="#171c39" stroke-width="2" stroke-opacity="0.619608" d="M90.79,-33C101.75,-33 114.01,-33 125.87,-33"/>
 </g>
-<!-- covest.Traces -->
+<!-- covest.Subject -->
 <g id="node3" class="node">
-<title>covest.Traces</title>
-<g id="a_node3"><a xlink:title="subject_id           setup                session_start_time   aod_scan_start_time  preprocess_method_num high_repeats         ------------------------------latency_ms           bin_ms               evoked_bins          nneurons             cell_xyz             cellnums             ndirs                directions           ntrials              trace_segments       ">
-<path fill="#e8f0e9" stroke="#3e7a52" d="M67.57,-103.28C67.57,-103.28 38.77,-103.28 38.77,-103.28 33.01,-103.28 27.25,-97.52 27.25,-91.76 27.25,-91.76 27.25,-80.24 27.25,-80.24 27.25,-74.48 33.01,-68.72 38.77,-68.72 38.77,-68.72 67.57,-68.72 67.57,-68.72 73.33,-68.72 79.09,-74.48 79.09,-80.24 79.09,-80.24 79.09,-91.76 79.09,-91.76 79.09,-97.52 73.33,-103.28 67.57,-103.28"/>
-<text xml:space="preserve" text-anchor="start" x="35.17" y="-81.97" font-family="Helvetica,sans-Serif" text-decoration="underline" font-size="12.00" fill="#28513a">Traces</text>
+<title>covest.Subject</title>
+<g id="a_node3"><a xlink:title="subject_id           ">
+<path fill="#e8f0e9" stroke="#3e7a52" d="M69.82,-103.28C69.82,-103.28 36.52,-103.28 36.52,-103.28 30.76,-103.28 25,-97.52 25,-91.76 25,-91.76 25,-80.24 25,-80.24 25,-74.48 30.76,-68.72 36.52,-68.72 36.52,-68.72 69.82,-68.72 69.82,-68.72 75.58,-68.72 81.34,-74.48 81.34,-80.24 81.34,-80.24 81.34,-91.76 81.34,-91.76 81.34,-97.52 75.58,-103.28 69.82,-103.28"/>
+<text xml:space="preserve" text-anchor="start" x="32.92" y="-81.97" font-family="Helvetica,sans-Serif" text-decoration="underline" font-size="12.00" fill="#28513a">Subject</text>
 </a>
 </g>
 </g>
-<!-- covest.ActiveCells -->
+<!-- covest.TrialTraceSet -->
 <g id="node4" class="node">
-<title>covest.ActiveCells</title>
-<g id="a_node4"><a xlink:title="→ covest.Traces------------------------------ncells               selection            ">
-<ellipse fill="#ffede5" stroke="#ff5113" cx="181.78" cy="-86" rx="48.76" ry="17.28"/>
-<text xml:space="preserve" text-anchor="middle" x="181.78" y="-80.97" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#b23200">ActiveCells</text>
+<title>covest.TrialTraceSet</title>
+<g id="a_node4"><a xlink:title="→ covest.Subjectsetup                session_start_time   aod_scan_start_time  preprocess_method_num high_repeats         ------------------------------latency_ms           bin_ms               evoked_bins          nneurons             cell_xyz             cellnums             ndirs                directions           ntrials              trace_segments       ">
+<path fill="#e8f0e9" stroke="#3e7a52" d="M213.8,-103.28C213.8,-103.28 149.75,-103.28 149.75,-103.28 143.99,-103.28 138.23,-97.52 138.23,-91.76 138.23,-91.76 138.23,-80.24 138.23,-80.24 138.23,-74.48 143.99,-68.72 149.75,-68.72 149.75,-68.72 213.8,-68.72 213.8,-68.72 219.56,-68.72 225.32,-74.48 225.32,-80.24 225.32,-80.24 225.32,-91.76 225.32,-91.76 225.32,-97.52 219.56,-103.28 213.8,-103.28"/>
+<text xml:space="preserve" text-anchor="start" x="146.15" y="-81.97" font-family="Helvetica,sans-Serif" text-decoration="underline" font-size="12.00" fill="#28513a">TrialTraceSet</text>
 </a>
 </g>
 </g>
-<!-- covest.Traces&#45;&gt;covest.ActiveCells -->
+<!-- covest.Subject&#45;&gt;covest.TrialTraceSet -->
 <g id="edge2" class="edge">
-<title>covest.Traces-&gt;covest.ActiveCells</title>
-<path fill="none" stroke="#171c39" stroke-width="2" stroke-opacity="0.619608" d="M79.49,-86C94.71,-86 114.59,-86 132.7,-86"/>
+<title>covest.Subject-&gt;covest.TrialTraceSet</title>
+<path fill="none" stroke="#171c39" stroke-width="0.75" stroke-opacity="0.619608" d="M81.64,-86C98.08,-86 119.32,-86 137.92,-86"/>
+</g>
+<!-- covest.CellSelection -->
+<g id="node5" class="node">
+<title>covest.CellSelection</title>
+<g id="a_node5"><a xlink:title="→ covest.TrialTraceSet------------------------------ncells               selection            ">
+<ellipse fill="#ffede5" stroke="#ff5113" cx="329.14" cy="-33" rx="55.92" ry="17.28"/>
+<text xml:space="preserve" text-anchor="middle" x="329.14" y="-27.98" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#b23200">CellSelection</text>
+</a>
+</g>
+</g>
+<!-- covest.TrialTraceSet&#45;&gt;covest.CellSelection -->
+<g id="edge3" class="edge">
+<title>covest.TrialTraceSet-&gt;covest.CellSelection</title>
+<path fill="none" stroke="#171c39" stroke-width="2" stroke-opacity="0.619608" d="M225.6,-70.38C246.71,-62.69 271.88,-53.51 291.99,-46.18"/>
 </g>
 <!-- covest.CovMatrix -->
-<g id="node7" class="node">
+<g id="node8" class="node">
 <title>covest.CovMatrix</title>
-<g id="a_node7"><a xlink:title="→ covest.ActiveCells→ covest.Method→ covest.Fold------------------------------means                variances            corr_matrix          sparse=null          lowrank=null         hypers=null          delta                visited=null         losses=null          sparsity='0'cv_loss=null         host                 computing_time       cm_ts=CURRENT_TIMESTAMP ">
-<ellipse fill="#ffede5" stroke="#ff5113" cx="317.68" cy="-139" rx="44.46" ry="17.28"/>
-<text xml:space="preserve" text-anchor="middle" x="317.68" y="-133.97" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#b23200">CovMatrix</text>
+<g id="a_node8"><a xlink:title="→ covest.CellSelection→ covest.Method→ covest.Fold------------------------------means                variances            corr_matrix          sparse=null          lowrank=null         hypers=null          delta                visited=null         losses=null          sparsity='0'cv_loss=null         host                 computing_time       cm_ts=CURRENT_TIMESTAMP ">
+<ellipse fill="#ffede5" stroke="#ff5113" cx="465.51" cy="-86" rx="44.46" ry="17.28"/>
+<text xml:space="preserve" text-anchor="middle" x="465.51" y="-80.97" font-family="Helvetica,sans-Serif" font-size="12.00" fill="#b23200">CovMatrix</text>
 </a>
 </g>
 </g>
-<!-- covest.ActiveCells&#45;&gt;covest.CovMatrix -->
-<g id="edge3" class="edge">
-<title>covest.ActiveCells-&gt;covest.CovMatrix</title>
-<path fill="none" stroke="#171c39" stroke-width="0.75" stroke-opacity="0.619608" d="M215.19,-98.83C236.55,-107.29 264.38,-118.3 285.48,-126.65"/>
+<!-- covest.CellSelection&#45;&gt;covest.CovMatrix -->
+<g id="edge4" class="edge">
+<title>covest.CellSelection-&gt;covest.CovMatrix</title>
+<path fill="none" stroke="#171c39" stroke-width="0.75" stroke-opacity="0.619608" d="M364.74,-46.65C385.89,-54.99 412.73,-65.58 433.24,-73.67"/>
 </g>
 <!-- covest.Method -->
-<g id="node5" class="node">
+<g id="node6" class="node">
 <title>covest.Method</title>
-<g id="a_node5"><a xlink:title="method               ------------------------------include_spont        condition_idx        regularization       hyperparam_space     ">
-<path fill="#f0f0f1" stroke="#808285" d="M198.05,-156.28C198.05,-156.28 165.5,-156.28 165.5,-156.28 159.74,-156.28 153.98,-150.52 153.98,-144.76 153.98,-144.76 153.98,-133.24 153.98,-133.24 153.98,-127.48 159.74,-121.72 165.5,-121.72 165.5,-121.72 198.05,-121.72 198.05,-121.72 203.81,-121.72 209.57,-127.48 209.57,-133.24 209.57,-133.24 209.57,-144.76 209.57,-144.76 209.57,-150.52 203.81,-156.28 198.05,-156.28"/>
-<text xml:space="preserve" text-anchor="start" x="161.9" y="-134.97" font-family="Helvetica,sans-Serif" text-decoration="underline" font-size="12.00" fill="#5a5c5f">Method</text>
+<g id="a_node6"><a xlink:title="method               ------------------------------include_spont        condition_idx        regularization       hyperparam_space     ">
+<path fill="#f0f0f1" stroke="#808285" d="M345.41,-103.28C345.41,-103.28 312.86,-103.28 312.86,-103.28 307.1,-103.28 301.34,-97.52 301.34,-91.76 301.34,-91.76 301.34,-80.24 301.34,-80.24 301.34,-74.48 307.1,-68.72 312.86,-68.72 312.86,-68.72 345.41,-68.72 345.41,-68.72 351.17,-68.72 356.93,-74.48 356.93,-80.24 356.93,-80.24 356.93,-91.76 356.93,-91.76 356.93,-97.52 351.17,-103.28 345.41,-103.28"/>
+<text xml:space="preserve" text-anchor="start" x="309.26" y="-81.97" font-family="Helvetica,sans-Serif" text-decoration="underline" font-size="12.00" fill="#5a5c5f">Method</text>
 </a>
 </g>
 </g>
 <!-- covest.Method&#45;&gt;covest.CovMatrix -->
-<g id="edge4" class="edge">
+<g id="edge5" class="edge">
 <title>covest.Method-&gt;covest.CovMatrix</title>
-<path fill="none" stroke="#171c39" stroke-width="0.75" stroke-opacity="0.619608" d="M209.88,-139C227.91,-139 252.01,-139 272.75,-139"/>
+<path fill="none" stroke="#171c39" stroke-width="0.75" stroke-opacity="0.619608" d="M357.33,-86C375.5,-86 399.82,-86 420.69,-86"/>
 </g>
 <!-- covest.Fold -->
-<g id="node6" class="node">
+<g id="node7" class="node">
 <title>covest.Fold</title>
-<g id="a_node6"><a xlink:title="k                    nfolds               ">
-<path fill="#f0f0f1" stroke="#808285" d="M190.18,-209.28C190.18,-209.28 173.38,-209.28 173.38,-209.28 167.62,-209.28 161.86,-203.52 161.86,-197.76 161.86,-197.76 161.86,-186.24 161.86,-186.24 161.86,-180.48 167.62,-174.72 173.38,-174.72 173.38,-174.72 190.18,-174.72 190.18,-174.72 195.94,-174.72 201.7,-180.48 201.7,-186.24 201.7,-186.24 201.7,-197.76 201.7,-197.76 201.7,-203.52 195.94,-209.28 190.18,-209.28"/>
-<text xml:space="preserve" text-anchor="start" x="169.78" y="-187.97" font-family="Helvetica,sans-Serif" text-decoration="underline" font-size="12.00" fill="#5a5c5f">Fold</text>
+<g id="a_node7"><a xlink:title="k                    nfolds               ">
+<path fill="#f0f0f1" stroke="#808285" d="M337.54,-156.28C337.54,-156.28 320.74,-156.28 320.74,-156.28 314.98,-156.28 309.22,-150.52 309.22,-144.76 309.22,-144.76 309.22,-133.24 309.22,-133.24 309.22,-127.48 314.98,-121.72 320.74,-121.72 320.74,-121.72 337.54,-121.72 337.54,-121.72 343.3,-121.72 349.06,-127.48 349.06,-133.24 349.06,-133.24 349.06,-144.76 349.06,-144.76 349.06,-150.52 343.3,-156.28 337.54,-156.28"/>
+<text xml:space="preserve" text-anchor="start" x="317.14" y="-134.97" font-family="Helvetica,sans-Serif" text-decoration="underline" font-size="12.00" fill="#5a5c5f">Fold</text>
 </a>
 </g>
 </g>
 <!-- covest.Fold&#45;&gt;covest.CovMatrix -->
-<g id="edge5" class="edge">
+<g id="edge6" class="edge">
 <title>covest.Fold-&gt;covest.CovMatrix</title>
-<path fill="none" stroke="#171c39" stroke-width="0.75" stroke-opacity="0.619608" d="M201.96,-184.41C223.8,-175.76 259.79,-161.52 285.64,-151.29"/>
+<path fill="none" stroke="#171c39" stroke-width="0.75" stroke-opacity="0.619608" d="M349.39,-131.41C371.3,-122.76 407.42,-108.52 433.36,-98.29"/>
 </g>
 </g>
 </svg>

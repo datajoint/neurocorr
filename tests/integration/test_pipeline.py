@@ -74,8 +74,9 @@ def test_source_import_fills_traces(clean_schema, tmp_path, monkeypatch):
     assert (covest.SourceImport & {"source_file": "traces-pre5-0000.mat"}).fetch1(
         "n_records"
     ) == 2
-    assert len(covest.Traces()) == 2
-    fetched = (covest.Traces & {"aod_scan_start_time": 1001}).fetch1()
+    assert len(covest.TrialTraceSet()) == 2
+    assert covest.Subject.to_dicts() == [{"subject_id": 16}]
+    fetched = (covest.TrialTraceSet & {"aod_scan_start_time": 1001}).fetch1()
     np.testing.assert_array_equal(fetched["trace_segments"], rows[0]["trace_segments"])
 
 
@@ -83,33 +84,38 @@ def test_source_import_fills_traces(clean_schema, tmp_path, monkeypatch):
 def test_traces_round_trip(clean_schema):
     covest = clean_schema
     row = simulated_traces()
-    covest.Traces.insert1(row)
-    fetched = (covest.Traces & {"aod_scan_start_time": 1001}).fetch1()
+    covest.Subject.insert1({"subject_id": 16})
+    covest.TrialTraceSet.insert1(row)
+    fetched = (covest.TrialTraceSet & {"aod_scan_start_time": 1001}).fetch1()
     np.testing.assert_array_equal(fetched["trace_segments"], row["trace_segments"])
     assert fetched["high_repeats"]
 
 
 @pytest.mark.integration
-def test_active_cells_only_for_correlation_sets(clean_schema):
+def test_cell_selection_only_for_correlation_sets(clean_schema):
     covest = clean_schema
-    covest.Traces.insert(
+    covest.Subject.insert1({"subject_id": 16})
+    covest.TrialTraceSet.insert(
         [
             simulated_traces(scan=1),
             simulated_traces(scan=2, high_repeats=False, n_dirs=16),
         ]
     )
-    covest.ActiveCells.populate()
-    assert len(covest.ActiveCells()) == 1
-    assert (covest.ActiveCells & {"aod_scan_start_time": 1001}).fetch1("ncells") == 110
+    covest.CellSelection.populate()
+    assert len(covest.CellSelection()) == 1
+    assert (covest.CellSelection & {"aod_scan_start_time": 1001}).fetch1(
+        "ncells"
+    ) == 110
 
 
 @pytest.mark.integration
 def test_cov_matrix_sample(clean_schema):
     covest = clean_schema
-    covest.Traces.insert(
+    covest.Subject.insert1({"subject_id": 16})
+    covest.TrialTraceSet.insert(
         [simulated_traces(scan=1), simulated_traces(scan=2, n_cells=90)]
     )
-    covest.ActiveCells.populate()
+    covest.CellSelection.populate()
     # sites with 100 cells or fewer are not estimated
     assert len(covest.CovMatrix.key_source & {"aod_scan_start_time": 1002}) == 0
     covest.CovMatrix.populate({"method": 0})
