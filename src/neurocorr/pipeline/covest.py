@@ -165,7 +165,7 @@ class Method(dj.Lookup):
     method           : int16
     ---
     include_spont    : bool       # include the spontaneous bins
-    condition_idx    : int16      # 0: all directions; 1 or 2: that direction only
+    direction        : int16      # 0: all directions; 1 or 2: the first or second direction of the set only
     regularization   : enum('sample', 'diag', 'factor', 'glasso', 'lv-glasso', 'lv-glasso refit')
     hyperparam_space : json       # one grid per hyperparameter, in the order estimate() takes them
     """
@@ -173,35 +173,35 @@ class Method(dj.Lookup):
         {
             "method": 0,
             "include_spont": True,
-            "condition_idx": 0,
+            "direction": 0,
             "regularization": "sample",
             "hyperparam_space": [],
         },
         {
             "method": 1,
             "include_spont": False,
-            "condition_idx": 0,
+            "direction": 0,
             "regularization": "sample",
             "hyperparam_space": [],
         },
         {
             "method": 2,
             "include_spont": False,
-            "condition_idx": 1,
+            "direction": 1,
             "regularization": "sample",
             "hyperparam_space": [],
         },
         {
             "method": 3,
             "include_spont": False,
-            "condition_idx": 2,
+            "direction": 2,
             "regularization": "sample",
             "hyperparam_space": [],
         },
         {
             "method": 10,
             "include_spont": True,
-            "condition_idx": 0,
+            "direction": 0,
             "regularization": "diag",
             "hyperparam_space": [
                 {"name": "variance_shrinkage", "log": [-6, -1, 0.05]},
@@ -211,7 +211,7 @@ class Method(dj.Lookup):
         {
             "method": 30,
             "include_spont": True,
-            "condition_idx": 0,
+            "direction": 0,
             "regularization": "factor",
             "hyperparam_space": [
                 {"name": "variance_shrinkage", "log": [-6, -1, 0.05]},
@@ -221,14 +221,14 @@ class Method(dj.Lookup):
         {
             "method": 80,
             "include_spont": True,
-            "condition_idx": 0,
+            "direction": 0,
             "regularization": "glasso",
             "hyperparam_space": [{"name": "alpha", "log": [-5, -1, 0.05]}],
         },
         {
             "method": 90,
             "include_spont": True,
-            "condition_idx": 0,
+            "direction": 0,
             "regularization": "lv-glasso",
             "hyperparam_space": [
                 {"name": "alpha", "log": [-7, -1, 0.05]},
@@ -238,7 +238,7 @@ class Method(dj.Lookup):
         {
             "method": 91,
             "include_spont": True,
-            "condition_idx": 0,
+            "direction": 0,
             "regularization": "lv-glasso refit",
             "hyperparam_space": [
                 {"name": "alpha", "log": [-7, -1, 0.05]},
@@ -248,7 +248,7 @@ class Method(dj.Lookup):
         {
             "method": 100,
             "include_spont": True,
-            "condition_idx": 0,
+            "direction": 0,
             "regularization": "lv-glasso",
             "hyperparam_space": [
                 {"name": "alpha", "log": [-7, -1.5, 0.05]},
@@ -297,7 +297,7 @@ class CovMatrix(dj.Compute):
         # the paper's sites; condition-specific methods only on sites with two directions
         eligible = (CellSelection & "ncells > 100") * TrialTraceSet.proj(
             "ndirs"
-        ) * Method.proj("condition_idx") & "ndirs = 2 OR condition_idx = 0"
+        ) * Method.proj("direction") & "ndirs = 2 OR direction = 0"
         return (
             super().key_source
             & (TrialTraceSet & {"preprocess_method_num": 5}).proj()
@@ -322,8 +322,8 @@ class CovMatrix(dj.Compute):
         X = np.asarray(X, dtype=np.float64)[..., selection]
         if not method["include_spont"]:
             X = X[:evoked_bins]
-        if method["condition_idx"]:
-            c = method["condition_idx"] - 1
+        if method["direction"]:
+            c = method["direction"] - 1
             X = X[:, c : c + 1]
 
         X, X_test = cove.split_trials(X, key["k"], key["nfolds"])

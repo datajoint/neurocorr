@@ -143,7 +143,7 @@ chosen the same way.
 - **Variance regularization.** `find_best_delta` returns the value with the lowest loss on its grid.
   `findBestDelta.m` returns the value one step past it.
 - **Random search.** Seeded from the key of each `CovMatrix` row, so results are reproducible.
-- **Columns.** `Method.condition` is `condition_idx`, because `condition` is a reserved word in SQL.
+- **Columns.** `Method.condition` is `direction`: 0 for all directions, 1 or 2 for the first or second direction of a two-direction set only (`condition` is a reserved word in SQL).
   `Method.hyperparam_space` is JSON. `CovMatrix.test_matrix` (a copy of the test trials) is
   dropped, and so is `QuadLoss`, which is not in the paper.
 
