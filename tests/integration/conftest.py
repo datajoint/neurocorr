@@ -48,13 +48,13 @@ def clean_schema(postgres_container):
     prefix = os.environ.get("DATABASE_PREFIX", "")
 
     def drop():
-        # the analysis depends on the ingest schema: drop it first
-        for name in ("covest", "ingest"):
+        for name in ("ingest", "covest"):
             dj.Schema(prefix + name).drop(prompt=False)
 
     drop()
-    # `@schema` declares tables at import time; reload to declare them again
-    importlib.reload(ingest)
+    # `@schema` declares tables at import time; reload to declare them again (the ingest
+    # module imports the pipeline's tables, so the pipeline first)
     importlib.reload(covest)
+    importlib.reload(ingest)
     yield SimpleNamespace(ingest=ingest, covest=covest)
     drop()

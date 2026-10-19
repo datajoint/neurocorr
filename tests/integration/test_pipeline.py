@@ -26,7 +26,7 @@ FIELDS = [
 
 
 def simulated_traces(n_cells=110, n_dirs=2, n_trials=30, high_repeats=True, site=1):
-    """A trial trace set's attributes, as the ingest inserts them."""
+    """A trial trace set's attributes, as the ingest inserts them, at a site of session 1."""
     rng = np.random.default_rng([site, high_repeats])
     n_bins = 4 if high_repeats else 3
     traces = rng.exponential(size=(n_bins, n_dirs, n_trials, n_cells)).astype(
@@ -34,6 +34,7 @@ def simulated_traces(n_cells=110, n_dirs=2, n_trials=30, high_repeats=True, site
     )
     traces[:, -1, -1] = np.nan
     return {
+        "session": 1,
         "site": site,
         "high_repeats": high_repeats,
         "preprocess_method_num": 5,
@@ -50,19 +51,19 @@ def simulated_traces(n_cells=110, n_dirs=2, n_trials=30, high_repeats=True, site
     }
 
 
-def insert_trace_sets(ingest, sets):
+def insert_trace_sets(covest, sets):
     """Insert trace sets with one session and a site for each."""
-    ingest.Session.insert1({"session": 1, "setup": 4, "session_start_time": 1000})
+    covest.Session.insert1({"session": 1, "setup": 4, "session_start_time": 1000})
     for n, row in enumerate(sets, start=1):
-        ingest.Site.insert1(
+        covest.Site.insert1(
             {
-                "site": row["site"],
                 "session": 1,
+                "site": row["site"],
                 "aod_scan_start_time": 1000 + row["site"],
             },
             skip_duplicates=True,
         )
-        ingest.TrialTraceSet.insert1({"trace_set": n, **row})
+        covest.TrialTraceSet.insert1({"trace_set": n, **row})
 
 
 def write_mat(path, records):
@@ -80,7 +81,7 @@ def write_mat(path, records):
 
 @pytest.mark.integration
 def test_source_import_numbers_across_files(clean_schema, tmp_path, monkeypatch):
-    ingest = clean_schema.ingest
+    ingest, covest = clean_schema.ingest, clean_schema.covest
 
     def record(session, scan, high_repeats):
         row = simulated_traces(
@@ -88,6 +89,7 @@ def test_source_import_numbers_across_files(clean_schema, tmp_path, monkeypatch)
             high_repeats=high_repeats,
             n_dirs=2 if high_repeats else 16,
         )
+        del row["session"], row["site"]
         return {
             **row,
             "subject_id": 16,
@@ -109,27 +111,30 @@ def test_source_import_numbers_across_files(clean_schema, tmp_path, monkeypatch)
     assert len(ingest.SourceFile()) == 4
     ingest.SourceImport.populate()
     assert ingest.SourceImport.fetch1("n_records") == 4
-    sessions = ingest.Session.to_dicts(order_by="session")
+    sessions = covest.Session.to_dicts(order_by="session")
     assert [(s["session"], s["session_start_time"]) for s in sessions] == [
         (1, 1000),
         (2, 2000),
     ]
-    sites = ingest.Site.to_dicts(order_by="site")
-    assert [(s["site"], s["session"], s["aod_scan_start_time"]) for s in sites] == [
+    # sites are numbered within their session
+    sites = covest.Site.to_dicts(order_by=("session", "site"))
+    assert [(s["session"], s["site"], s["aod_scan_start_time"]) for s in sites] == [
         (1, 1, 1001),
-        (2, 1, 1002),
-        (3, 2, 2001),
+        (1, 2, 1002),
+        (2, 1, 2001),
     ]
-    sets = ingest.TrialTraceSet.proj("site", "high_repeats").to_dicts(
+    sets = covest.TrialTraceSet.proj("session", "site", "high_repeats").to_dicts(
         order_by="trace_set"
     )
-    assert [(s["trace_set"], s["site"], bool(s["high_repeats"])) for s in sets] == [
-        (1, 1, True),
-        (2, 2, False),
-        (3, 2, True),
-        (4, 3, True),
+    assert [
+        (s["trace_set"], s["session"], s["site"], bool(s["high_repeats"])) for s in sets
+    ] == [
+        (1, 1, 1, True),
+        (2, 1, 2, False),
+        (3, 1, 2, True),
+        (4, 2, 1, True),
     ]
-    fetched = (ingest.TrialTraceSet & {"trace_set": 3}).fetch1("trace_segments")
+    fetched = (covest.TrialTraceSet & {"trace_set": 3}).fetch1("trace_segments")
     np.testing.assert_array_equal(
         fetched, files["traces-pre5-0002.mat"][0]["trace_segments"]
     )
@@ -137,22 +142,22 @@ def test_source_import_numbers_across_files(clean_schema, tmp_path, monkeypatch)
 
 @pytest.mark.integration
 def test_trace_set_round_trip(clean_schema):
-    ingest = clean_schema.ingest
+    covest = clean_schema.covest
     row = simulated_traces()
-    insert_trace_sets(ingest, [row])
-    fetched = (ingest.TrialTraceSet & {"trace_set": 1}).fetch1()
+    insert_trace_sets(covest, [row])
+    fetched = (covest.TrialTraceSet & {"trace_set": 1}).fetch1()
     np.testing.assert_array_equal(fetched["trace_segments"], row["trace_segments"])
     assert fetched["high_repeats"]
     # a site has one trace set of each kind
     with pytest.raises(Exception):
-        ingest.TrialTraceSet.insert1({**row, "trace_set": 2})
+        covest.TrialTraceSet.insert1({**row, "trace_set": 2})
 
 
 @pytest.mark.integration
 def test_cell_selection_only_for_correlation_sets(clean_schema):
-    ingest, covest = clean_schema.ingest, clean_schema.covest
+    covest = clean_schema.covest
     insert_trace_sets(
-        ingest,
+        covest,
         [
             simulated_traces(site=1),
             simulated_traces(site=2, high_repeats=False, n_dirs=16),
@@ -165,9 +170,9 @@ def test_cell_selection_only_for_correlation_sets(clean_schema):
 
 @pytest.mark.integration
 def test_cov_matrix_sample(clean_schema):
-    ingest, covest = clean_schema.ingest, clean_schema.covest
+    covest = clean_schema.covest
     insert_trace_sets(
-        ingest, [simulated_traces(site=1), simulated_traces(site=2, n_cells=90)]
+        covest, [simulated_traces(site=1), simulated_traces(site=2, n_cells=90)]
     )
     covest.CellSelection.populate()
     # sites with 100 cells or fewer are not estimated

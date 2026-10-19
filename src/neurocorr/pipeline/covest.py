@@ -4,13 +4,16 @@ Noise-correlation estimation schema.
 A translation of the DataJoint MATLAB schema ``covest`` in https://github.com/atlab/cov-est
 (MIT License, (c) 2014 Tolias Lab), with each table named for what one row is:
 
-    ingest.TrialTraceSet ──> CellSelection ──┐
-             │                        Method ├──> CovMatrix
-             └──> OriTuning             Fold ┘
+    Session ──> Site ··> TrialTraceSet ──> CellSelection ──┐
+                               │                    Method ├──> CovMatrix
+                               └──> OriTuning         Fold ┘
 
-The MATLAB schema's ``Traces`` (here ``ingest.TrialTraceSet``) was copied from an upstream lab
-pipeline and keyed by its identifiers there; here a trace set has a simple number, and the
-ingest schema keeps the original identifiers.
+The MATLAB schema's ``Traces`` (here ``TrialTraceSet``) was copied from an upstream lab pipeline
+and keyed by its identifiers there. Here a session is numbered, a site is numbered within its
+session, and a trial trace set has a simple number; each keeps its original identifiers as
+attributes. The dotted arrow is a secondary reference: a trace set belongs to a site without
+being identified by it. The ``ingest`` schema fills Session, Site, and TrialTraceSet from the
+published data files.
 """
 
 import os
@@ -21,9 +24,55 @@ import datajoint as dj
 import numpy as np
 
 from neurocorr import cove
-from neurocorr.pipeline.ingest import Site, TrialTraceSet
 
 schema = dj.Schema(os.environ.get("DATABASE_PREFIX", "") + "covest")
+
+
+@schema
+class Session(dj.Entry):
+    definition = """
+    # An imaging session: one mouse on the setup
+    session            : int16
+    ---
+    setup              : int16
+    session_start_time : int64      # the session's identifier in the original database
+    unique index (session_start_time)
+    """
+
+
+@schema
+class Site(dj.Entry):
+    definition = """
+    # An imaging site: one 3D scan of a session, whose cells are recorded in each of its stimulus sets
+    -> Session
+    site                : int16     # numbered within the session
+    ---
+    aod_scan_start_time : int64     # the scan's identifier in the original database
+    unique index (aod_scan_start_time)
+    """
+
+
+@schema
+class TrialTraceSet(dj.Entry):
+    definition = """
+    # The binned activity of one imaging site in every trial of one stimulus set, aligned on stimulus onset
+    trace_set             : int16
+    ---
+    -> Site
+    high_repeats          : bool       # true: 2 or 5 directions with many trials, for correlations; false: 16 directions, for tuning
+    preprocess_method_num : int32      # 5: spike inference by fast nonnegative deconvolution
+    latency_ms            : int16      # presumed screen-to-V1 latency
+    bin_ms                : int16      # bin duration
+    evoked_bins           : int16      # bins driven by the stimulus; the remaining bins are spontaneous
+    nneurons              : int16
+    cell_xyz              : <npy@>     # nneurons x 3: cell centers, µm from the center of the scan
+    cellnums              : <npy@>     # nneurons: cell numbers in the original segmentation
+    ndirs                 : int16      # number of grating directions
+    directions            : <npy@>     # ndirs: degrees
+    ntrials               : <npy@>     # ndirs: trials of each direction
+    trace_segments        : <npy@>     # bins x ndirs x trials x nneurons, float32, NaN-padded to the most trials
+    unique index (session, site, high_repeats)
+    """
 
 
 def scan_id(key) -> int:
