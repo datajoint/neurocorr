@@ -100,10 +100,10 @@ def test_source_import_numbers_across_files(clean_schema, tmp_path, monkeypatch)
 
     # one session's sets spread over the files, out of order
     files = {
-        "traces-pre5-0000.mat": [record(2000, 2001, True)],
-        "traces-pre5-0001.mat": [record(1000, 1002, False)],
-        "traces-pre5-0002.mat": [record(1000, 1002, True)],
-        "traces-pre5-0003.mat": [record(1000, 1001, True)],
+        "traces-pre5-0000.mat": [record(60000, 62001, True)],
+        "traces-pre5-0001.mat": [record(50000, 51002, False)],
+        "traces-pre5-0002.mat": [record(50000, 51002, True)],
+        "traces-pre5-0003.mat": [record(50000, 51001, True)],
     }
     paths = {name: write_mat(tmp_path / name, rows) for name, rows in files.items()}
     monkeypatch.setattr(ingest, "fetch", lambda file_name, sha256: paths[file_name])
@@ -113,15 +113,15 @@ def test_source_import_numbers_across_files(clean_schema, tmp_path, monkeypatch)
     assert ingest.SourceImport.fetch1("n_records") == 4
     sessions = covest.Session.to_dicts(order_by="session")
     assert [(s["session"], s["session_start_time"]) for s in sessions] == [
-        (1, 1000),
-        (2, 2000),
+        (1, 50000),
+        (2, 60000),
     ]
-    # sites are numbered within their session
+    # a site takes its number in the original code: its scan start time mod 10000
     sites = covest.Site.to_dicts(order_by=("session", "site"))
     assert [(s["session"], s["site"], s["aod_scan_start_time"]) for s in sites] == [
-        (1, 1, 1001),
-        (1, 2, 1002),
-        (2, 1, 2001),
+        (1, 1001, 51001),
+        (1, 1002, 51002),
+        (2, 2001, 62001),
     ]
     sets = covest.TrialTraceSet.proj("session", "site", "high_repeats").to_dicts(
         order_by="trace_set"
@@ -129,10 +129,10 @@ def test_source_import_numbers_across_files(clean_schema, tmp_path, monkeypatch)
     assert [
         (s["trace_set"], s["session"], s["site"], bool(s["high_repeats"])) for s in sets
     ] == [
-        (1, 1, 1, True),
-        (2, 1, 2, False),
-        (3, 1, 2, True),
-        (4, 2, 1, True),
+        (1, 1, 1001, True),
+        (2, 1, 1002, False),
+        (3, 1, 1002, True),
+        (4, 2, 2001, True),
     ]
     fetched = (covest.TrialTraceSet & {"trace_set": 3}).fetch1("trace_segments")
     np.testing.assert_array_equal(

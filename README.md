@@ -56,13 +56,14 @@ Each table is named for what one row is, so two tables of the original are renam
 
 **Keys.** The original table was keyed by its identifiers in the lab's database: subject,
 setup, session and scan start times, preprocessing method, and stimulus set. Here a session is
-numbered from 1 (`session`), a site is numbered within its session (`session`, `site`), so its key
-says which animal it comes from, and a trial trace set has a simple number (`trace_set`) and
-refers to its site. Numbers follow the order of the original identifiers, which are kept as
-unique attributes (`session_start_time`, `aod_scan_start_time`). The analysis tables are keyed by
-`trace_set`. The paper's example site (scan 3453748112031) is session 8, site 4, with tuning set
-27 and correlation set 28. Random draws (the hyperparameter search, the tuning shuffles) are
-seeded from the scan identifier.
+numbered from 1 in the order of its start time (`session`). A site is keyed by its session and
+the number the original code and figure scripts give it, the last four digits of its scan start
+time (`site`, `mod(aod_scan_start_time, 10000)`), so its key says which animal it comes from and
+matches the original code. A trial trace set has a simple number (`trace_set`) and refers to its
+site. The original identifiers are kept as unique attributes (`session_start_time`,
+`aod_scan_start_time`), and the analysis tables are keyed by `trace_set`. The example site of
+Fig 3 (292 cells) is session 8, site 2031, with tuning set 27 and correlation set 28. Random
+draws (the hyperparameter search, the tuning shuffles) are seeded from the scan identifier.
 
 **Subjects.** The published records carry a `subject_id`, but it is 16 in all 60 of them,
 although the study imaged 14 mice, so it does not identify the animals and is not kept. The 27

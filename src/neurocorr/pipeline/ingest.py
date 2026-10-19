@@ -8,9 +8,11 @@ The schema handles the files only. ``SourceImport`` reads them and inserts the s
 imaging sites, and their trial trace sets into the pipeline's ``covest`` schema, which has no
 reference back to it (fan-out ingestion): the pipeline starts at ``covest.Session``.
 
-Sessions are numbered from 1 in the order of their start times, sites within each session in
-the order of their scan start times, and trace sets from 1 in the order of their site, the
-tuning set before the correlation set. The original identifiers stay on the rows.
+Sessions are numbered from 1 in the order of their start times. A site takes the number the
+original code and figure scripts use for it, the last four digits of its scan start time
+(``mod(aod_scan_start_time, 10000)``; the example site of Fig 3 is 2031). Trace sets are numbered
+from 1 in the order of their session and scan, the tuning set before the correlation set. The
+original identifiers stay on the rows.
 
 The published records give every session the same ``subject_id`` (16), although the study
 imaged 14 mice: the identifier does not tell the animals apart, so it is not kept. The paper's
@@ -83,12 +85,14 @@ class SourceImport(dj.Ingest):
                 sorted({r.session_start_time for r in records}), start=1
             )
         }
-        site_of = {}  # scan -> (session, site), sites numbered within each session
-        for r in records:
-            if r.aod_scan_start_time not in site_of:
-                session = session_of[r.session_start_time]
-                n = sum(1 for s, _ in site_of.values() if s == session) + 1
-                site_of[r.aod_scan_start_time] = (session, n)
+        # scan -> (session, site), the site numbered as the original code numbers it
+        site_of = {
+            r.aod_scan_start_time: (
+                session_of[r.session_start_time],
+                r.aod_scan_start_time % 10000,
+            )
+            for r in records
+        }
 
         setup_of = {r.session_start_time: r.setup for r in records}
         Session.insert(
