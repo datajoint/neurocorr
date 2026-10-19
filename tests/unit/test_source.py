@@ -76,12 +76,6 @@ def test_read_records(mat_file):
     assert correlation.aod_scan_start_time == 3453748112031
 
 
-def test_to_row(mat_file):
-    row = source.to_row(source.read_records(mat_file)[1])
-    assert row["nneurons"] == 4 and row["ndirs"] == 2 and row["bin_ms"] == 150
-    assert row["high_repeats"] is True
-
-
 def test_fetch_uses_a_verified_local_copy(tmp_path, monkeypatch):
     monkeypatch.setenv("NEUROCORR_DATA_DIR", str(tmp_path))
     (tmp_path / "x.mat").write_bytes(b"data")

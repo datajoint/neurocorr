@@ -4,13 +4,13 @@ Noise-correlation estimation schema.
 A translation of the DataJoint MATLAB schema ``covest`` in https://github.com/atlab/cov-est
 (MIT License, (c) 2014 Tolias Lab), with each table named for what one row is:
 
-    SourceFile ──> SourceImport ··· fills ···> Subject ──> TrialTraceSet ──> CellSelection ──┐
-                                                                    │                Method ├──> CovMatrix
-                                                                    └──> OriTuning     Fold ┘
+    ingest.TrialTraceSet ──> CellSelection ──┐
+             │                        Method ├──> CovMatrix
+             └──> OriTuning             Fold ┘
 
-The MATLAB schema's ``Traces`` (here ``TrialTraceSet``) was copied from an upstream lab
-pipeline, ``pop.TrialTraceSet``. Here, the published data files are its source:
-``SourceImport`` reads each file and inserts its subjects and trace sets (fan-out ingestion).
+The MATLAB schema's ``Traces`` (here ``ingest.TrialTraceSet``) was copied from an upstream lab
+pipeline and keyed by its identifiers there; here a trace set has a simple number, and the
+ingest schema keeps the original identifiers.
 """
 
 import os
@@ -21,79 +21,14 @@ import datajoint as dj
 import numpy as np
 
 from neurocorr import cove
-from neurocorr.ingest import SOURCE_FILES, fetch, read_records, to_row
+from neurocorr.pipeline.ingest import Site, TrialTraceSet
 
 schema = dj.Schema(os.environ.get("DATABASE_PREFIX", "") + "covest")
 
 
-@schema
-class SourceFile(dj.Lookup):
-    definition = """
-    # A data file of the original study, published with its code in github.com/atlab/cov-est
-    source_file : varchar(24)
-    ---
-    sha256      : char(64)
-    """
-    contents = [
-        {"source_file": name, "sha256": sha256} for name, sha256 in SOURCE_FILES
-    ]
-
-
-@schema
-class SourceImport(dj.Ingest):
-    definition = """
-    # The import of one source file's subjects and trial trace sets
-    -> SourceFile
-    ---
-    n_records : int16
-    """
-
-    def make(self, key):
-        """Download the source file if needed, verify its SHA-256, and insert its records.
-
-        Each record of the file is one row of the original ``covest.Traces``: the trial traces
-        of one imaging site for one stimulus set. Its subject goes into Subject and the record
-        into TrialTraceSet; rows already present are left as they are.
-        """
-        path = fetch(key["source_file"], (SourceFile & key).fetch1("sha256"))
-        rows = [to_row(record) for record in read_records(path)]
-        Subject.insert(
-            ({"subject_id": row["subject_id"]} for row in rows), skip_duplicates=True
-        )
-        TrialTraceSet.insert(rows, skip_duplicates=True)
-        self.insert1({**key, "n_records": len(rows)})
-
-
-@schema
-class Subject(dj.Entry):
-    definition = """
-    # A subject of the study, by its identifier in the original database
-    subject_id : int32
-    """
-
-
-@schema
-class TrialTraceSet(dj.Entry):
-    definition = """
-    # The binned activity of one imaging site in every trial of one stimulus set, aligned on stimulus onset
-    -> Subject
-    setup                 : int16
-    session_start_time    : int64      # the session's identifier in the original database
-    aod_scan_start_time   : int64      # the scan's identifier in the original database: one imaging site
-    preprocess_method_num : int32      # 5: spike inference by fast nonnegative deconvolution
-    high_repeats          : bool       # true: 2 or 5 directions with many trials, for correlations; false: 16 directions, for tuning
-    ---
-    latency_ms            : int16      # presumed screen-to-V1 latency
-    bin_ms                : int16      # bin duration
-    evoked_bins           : int16      # bins driven by the stimulus; the remaining bins are spontaneous
-    nneurons              : int16
-    cell_xyz              : <npy@>     # nneurons x 3: cell centers, µm from the center of the scan
-    cellnums              : <npy@>     # nneurons: cell numbers in the original segmentation
-    ndirs                 : int16      # number of grating directions
-    directions            : <npy@>     # ndirs: degrees
-    ntrials               : <npy@>     # ndirs: trials of each direction
-    trace_segments        : <npy@>     # bins x ndirs x trials x nneurons, float32, NaN-padded to the most trials
-    """
+def scan_id(key) -> int:
+    """The trace set's scan identifier in the original database: the seed of its random draws."""
+    return int((Site * TrialTraceSet & key).fetch1("aod_scan_start_time"))
 
 
 @schema
@@ -108,7 +43,7 @@ class CellSelection(dj.Compute):
 
     @property
     def key_source(self):
-        return super().key_source & {"high_repeats": True}
+        return super().key_source & (TrialTraceSet & {"high_repeats": True}).proj()
 
     def make(self, key):
         """Keep the cells active in every quarter of the recording.
@@ -157,7 +92,7 @@ class OriTuning(dj.Compute):
         responses = (
             X[: min(evoked_bins, X.shape[0])].sum(axis=0).transpose(2, 0, 1)
         )  # cells x dirs x trials
-        rng = np.random.default_rng([key["aod_scan_start_time"], self.n_shuffles])
+        rng = np.random.default_rng([scan_id(key), self.n_shuffles])
         w, r2, p = cove.tuning_significance(responses, self.n_shuffles, rng)
         self.insert1(
             {
@@ -314,7 +249,11 @@ class CovMatrix(dj.Compute):
         eligible = (CellSelection & "ncells > 100") * TrialTraceSet.proj(
             "ndirs"
         ) * Method.proj("condition_idx") & "ndirs = 2 OR condition_idx = 0"
-        return super().key_source & {"preprocess_method_num": 5} & eligible.proj()
+        return (
+            super().key_source
+            & (TrialTraceSet & {"preprocess_method_num": 5}).proj()
+            & eligible.proj()
+        )
 
     def make(self, key):
         """Estimate the noise correlations of the active cells on the fold's training trials.
@@ -344,7 +283,7 @@ class CovMatrix(dj.Compute):
         visited = losses = None
         if any(len(g) > 1 for g in space):
             rng = np.random.default_rng(
-                [key["aod_scan_start_time"], key["method"], key["k"], key["nfolds"]]
+                [scan_id(key), key["method"], key["k"], key["nfolds"]]
             )
             hypers, delta, visited, losses = cove.cross_estimate_hyper(
                 X, evoked_bins, regularization, space, rng

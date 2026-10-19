@@ -37,16 +37,24 @@ def postgres_container(tmp_path_factory):
 
 @pytest.fixture
 def clean_schema(postgres_container):
-    """Declare the schema afresh for each test, and drop it afterwards."""
+    """Declare both schemas afresh for each test, and drop them afterwards."""
     import importlib
+    from types import SimpleNamespace
 
     import datajoint as dj
 
-    from neurocorr.pipeline import covest
+    from neurocorr.pipeline import covest, ingest
 
-    name = os.environ.get("DATABASE_PREFIX", "") + "covest"
-    dj.Schema(name).drop(prompt=False)
+    prefix = os.environ.get("DATABASE_PREFIX", "")
+
+    def drop():
+        # the analysis depends on the ingest schema: drop it first
+        for name in ("covest", "ingest"):
+            dj.Schema(prefix + name).drop(prompt=False)
+
+    drop()
     # `@schema` declares tables at import time; reload to declare them again
+    importlib.reload(ingest)
     importlib.reload(covest)
-    yield covest
-    dj.Schema(name).drop(prompt=False)
+    yield SimpleNamespace(ingest=ingest, covest=covest)
+    drop()

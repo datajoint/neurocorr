@@ -83,7 +83,6 @@ def fetch(file_name: str, expected_sha256: str) -> Path:
 class Record:
     """One element of a source file's ``tuples``: the recording of one protocol in one scan."""
 
-    subject_id: int
     setup: int
     session_start_time: int
     aod_scan_start_time: int
@@ -113,7 +112,6 @@ def read_records(path: Path) -> list[Record]:
             traces = traces[:, None]
         records.append(
             Record(
-                subject_id=int(t.subject_id),
                 setup=int(t.setup),
                 session_start_time=int(t.session_start_time),
                 aod_scan_start_time=int(t.aod_scan_start_time),
@@ -130,25 +128,3 @@ def read_records(path: Path) -> list[Record]:
             )
         )
     return records
-
-
-def to_row(record: Record) -> dict:
-    """A ``covest.TrialTraceSet`` row from a source record."""
-    return {
-        "subject_id": record.subject_id,
-        "setup": record.setup,
-        "session_start_time": record.session_start_time,
-        "aod_scan_start_time": record.aod_scan_start_time,
-        "preprocess_method_num": record.preprocess_method_num,
-        "high_repeats": record.high_repeats,
-        "latency_ms": record.latency_ms,
-        "bin_ms": record.bin_ms,
-        "evoked_bins": record.evoked_bins,
-        "nneurons": len(record.cell_nums),
-        "cell_xyz": record.cell_xyz,
-        "cellnums": record.cell_nums,
-        "ndirs": len(record.directions),
-        "directions": record.directions,
-        "ntrials": record.n_trials,
-        "trace_segments": record.traces,
-    }
