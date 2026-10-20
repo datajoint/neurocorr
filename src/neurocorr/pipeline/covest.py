@@ -9,10 +9,10 @@ A translation of the DataJoint MATLAB schema ``covest`` in https://github.com/at
                                └──> OriTuning         Fold ┘
 
 The MATLAB schema's ``Traces`` (here ``TrialTraceSet``) was copied from an upstream lab pipeline
-and keyed by its identifiers there. Here a session is numbered, a site within its session carries
-the number the original code gives it, and a trial trace set has a simple number; each keeps its
-original identifiers as attributes. The dotted arrow is a secondary reference: a trace set belongs to a site without
-being identified by it. The ``ingest`` schema fills Session, Site, and TrialTraceSet from the
+and keyed by its identifiers there. Here a session and, within it, a site carry the numbers the
+original code labels sites by (the last four digits of their start times), and a trial trace set
+has a simple number; each keeps its original identifiers as attributes. The dotted arrow is a
+secondary reference: a trace set belongs to a site without being identified by it. The ``ingest`` schema fills Session, Site, and TrialTraceSet from the
 published data files.
 """
 
@@ -32,7 +32,7 @@ schema = dj.Schema(os.environ.get("DATABASE_PREFIX", "") + "covest")
 class Session(dj.Entry):
     definition = """
     # An imaging session: one mouse on the setup
-    session            : int16
+    session            : int16      # the session's number: its start time mod 10000, as the original code labels sites
     ---
     setup              : int16
     session_start_time : int64      # the session's identifier in the original database

@@ -79,65 +79,137 @@ def write_mat(path, records):
     return path
 
 
-@pytest.mark.integration
-def test_source_import_numbers_across_files(clean_schema, tmp_path, monkeypatch):
-    ingest, covest = clean_schema.ingest, clean_schema.covest
-
-    def record(session, scan, high_repeats):
-        row = simulated_traces(
-            site=scan - session,
-            high_repeats=high_repeats,
-            n_dirs=2 if high_repeats else 16,
-        )
-        del row["session"], row["site"]
-        return {
-            **row,
-            "subject_id": 16,
-            "setup": 4,
-            "session_start_time": session,
-            "aod_scan_start_time": scan,
-        }
-
-    # one session's sets spread over the files, out of order
-    files = {
-        "traces-pre5-0000.mat": [record(60000, 62001, True)],
-        "traces-pre5-0001.mat": [record(50000, 51002, False)],
-        "traces-pre5-0002.mat": [record(50000, 51002, True)],
-        "traces-pre5-0003.mat": [record(50000, 51001, True)],
-    }
-    paths = {name: write_mat(tmp_path / name, rows) for name, rows in files.items()}
-    monkeypatch.setattr(ingest, "fetch", lambda file_name, sha256: paths[file_name])
-
-    assert len(ingest.SourceFile()) == 4
-    ingest.SourceImport.populate()
-    assert ingest.SourceImport.fetch1("n_records") == 4
-    sessions = covest.Session.to_dicts(order_by="session")
-    assert [(s["session"], s["session_start_time"]) for s in sessions] == [
-        (1, 50000),
-        (2, 60000),
-    ]
-    # a site takes its number in the original code: its scan start time mod 10000
-    sites = covest.Site.to_dicts(order_by=("session", "site"))
-    assert [(s["session"], s["site"], s["aod_scan_start_time"]) for s in sites] == [
-        (1, 1001, 51001),
-        (1, 1002, 51002),
-        (2, 2001, 62001),
-    ]
-    sets = covest.TrialTraceSet.proj("session", "site", "high_repeats").to_dicts(
-        order_by="trace_set"
+def _source_record(session, scan, high_repeats):
+    """A published record: a trace set with its original identifiers."""
+    row = simulated_traces(
+        site=scan % 10000, high_repeats=high_repeats, n_dirs=2 if high_repeats else 16
     )
+    del row["session"], row["site"]
+    return {
+        **row,
+        "subject_id": 16,
+        "setup": 4,
+        "session_start_time": session,
+        "aod_scan_start_time": scan,
+    }
+
+
+# sessions 31234 and 42345 (numbered 1234 and 2345) have records in several files
+SOURCE = {
+    "traces-pre5-0000.mat": [
+        _source_record(42345, 62001, True),
+        _source_record(31234, 51002, False),
+    ],
+    "traces-pre5-0001.mat": [_source_record(31234, 51002, True)],
+    "traces-pre5-0002.mat": [_source_record(31234, 51001, True)],
+    "traces-pre5-0003.mat": [_source_record(42345, 62001, False)],
+}
+
+
+def _with_source(ingest, monkeypatch, tmp_path, source, fetched):
+    """Serve each file from tmp_path, record which file each fetch asks for, and expect each
+    file's own number of records."""
+    paths = {name: write_mat(tmp_path / name, rows) for name, rows in source.items()}
+
+    def fetch(file_name, sha256):
+        fetched.append(file_name)
+        return paths[file_name]
+
+    monkeypatch.setattr(ingest, "fetch", fetch)
+    monkeypatch.setattr(
+        ingest,
+        "SOURCE_FILES",
+        [(name, sha, len(source[name])) for name, sha, _ in ingest.SOURCE_FILES],
+    )
+
+
+def _contents(covest):
+    return (
+        covest.Session.to_dicts(order_by="session"),
+        covest.Site.to_dicts(order_by=("session", "site")),
+        covest.TrialTraceSet.proj("session", "site", "high_repeats").to_dicts(
+            order_by="trace_set"
+        ),
+    )
+
+
+@pytest.mark.integration
+def test_source_import_one_job_per_file(clean_schema, tmp_path, monkeypatch):
+    ingest, covest = clean_schema.ingest, clean_schema.covest
+    fetched = []
+    _with_source(ingest, monkeypatch, tmp_path, SOURCE, fetched)
+
+    files = ingest.SourceFile.to_dicts(order_by="source_file")
+    assert [f["first_trace_set"] for f in files] == [1, 17, 42, 57]
+    for file in files:
+        fetched.clear()
+        ingest.SourceImport.populate({"source_file": file["source_file"]})
+        # each job reads its own file only
+        assert fetched == [file["source_file"]]
+
+    sessions, sites, sets = _contents(covest)
+    # a session and a site take the last four digits of their start times
+    assert [(s["session"], s["session_start_time"]) for s in sessions] == [
+        (1234, 31234),
+        (2345, 42345),
+    ]
+    assert [(s["session"], s["site"], s["aod_scan_start_time"]) for s in sites] == [
+        (1234, 1001, 51001),
+        (1234, 1002, 51002),
+        (2345, 2001, 62001),
+    ]
+    # trace sets follow the files: each file from its first number, in file order
     assert [
         (s["trace_set"], s["session"], s["site"], bool(s["high_repeats"])) for s in sets
     ] == [
-        (1, 1, 1001, True),
-        (2, 1, 1002, False),
-        (3, 1, 1002, True),
-        (4, 2, 2001, True),
+        (1, 2345, 2001, True),
+        (2, 1234, 1002, False),
+        (17, 1234, 1002, True),
+        (42, 1234, 1001, True),
+        (57, 2345, 2001, False),
     ]
-    fetched = (covest.TrialTraceSet & {"trace_set": 3}).fetch1("trace_segments")
+    fetched_set = (covest.TrialTraceSet & {"trace_set": 17}).fetch1("trace_segments")
     np.testing.assert_array_equal(
-        fetched, files["traces-pre5-0002.mat"][0]["trace_segments"]
+        fetched_set, SOURCE["traces-pre5-0001.mat"][0]["trace_segments"]
     )
+
+
+@pytest.mark.integration
+def test_source_import_numbers_do_not_depend_on_job_order(
+    clean_schema, tmp_path, monkeypatch
+):
+    import importlib
+    import os
+
+    import datajoint as dj
+
+    results = []
+    for order in (sorted(SOURCE), sorted(SOURCE, reverse=True)):
+        prefix = os.environ.get("DATABASE_PREFIX", "")
+        for name in ("ingest", "covest"):
+            dj.Schema(prefix + name).drop(prompt=False)
+        covest = importlib.reload(clean_schema.covest)
+        ingest = importlib.reload(clean_schema.ingest)
+        _with_source(ingest, monkeypatch, tmp_path, SOURCE, [])
+        for name in order:
+            ingest.SourceImport.populate({"source_file": name})
+        results.append(_contents(covest))
+    assert results[0] == results[1]
+
+
+@pytest.mark.integration
+def test_source_import_refuses_a_number_for_two_sessions(
+    clean_schema, tmp_path, monkeypatch
+):
+    import datajoint as dj
+
+    ingest = clean_schema.ingest
+    # 31234 and 71234 share their last four digits
+    source = {**SOURCE, "traces-pre5-0003.mat": [_source_record(71234, 81001, True)]}
+    _with_source(ingest, monkeypatch, tmp_path, source, [])
+    ingest.SourceImport.populate({"source_file": "traces-pre5-0002.mat"})
+    with pytest.raises(dj.DataJointError, match="already session_start_time 31234"):
+        ingest.SourceImport.populate({"source_file": "traces-pre5-0003.mat"})
 
 
 @pytest.mark.integration

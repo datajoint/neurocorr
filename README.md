@@ -33,14 +33,14 @@ table, and the estimators are ported from its `+cove` package to numpy and scipy
 ![Pipeline diagram](docs/pipeline.svg)
 
 The pipeline is the `covest` schema, from `Session` on. A separate `ingest` schema handles the
-published data files: it reads them and fills the pipeline's first tables, which have no
-reference back to it (fan-out ingestion), so the diagram draws the two apart.
+published data files, one import job per file: each job reads its file and fills the pipeline's
+first tables, which have no reference back to it (fan-out ingestion), so the diagram draws the
+two apart.
 
 | Schema | Table | Tier | One row is | Original |
 |---|---|---|---|---|
-| `ingest` | `Source` | Lookup | the published data of the original study: the data files of a pinned commit of atlab/cov-est | (new) |
-| `ingest` | `SourceFile` | Lookup | one data file of a source, with its SHA-256 | (new) |
-| `ingest` | `SourceImport` | Ingest | the import of a source's sessions, sites, and trial trace sets into the pipeline | (new) |
+| `ingest` | `SourceFile` | Lookup | a data file published with the original code (atlab/cov-est at a pinned commit), with its SHA-256 and the number of its first trace set | (new) |
+| `ingest` | `SourceImport` | Ingest | the import of one file's sessions, sites, and trial trace sets into the pipeline | (new) |
 | `covest` | `Session` | Entry | an imaging session: one mouse on the setup | (new) |
 | `covest` | `Site` | Entry | an imaging site: one 3D scan of a session | (new) |
 | `covest` | `TrialTraceSet` | Entry | the binned activity of one imaging site in every trial of one stimulus set | `covest.Traces` |
@@ -55,14 +55,18 @@ Each table is named for what one row is, so two tables of the original are renam
 `pop.TrialTraceSet`), and `covest.ActiveCells` is `CellSelection`.
 
 **Keys.** The original table was keyed by its identifiers in the lab's database: subject,
-setup, session and scan start times, preprocessing method, and stimulus set. Here a session is
-numbered from 1 in the order of its start time (`session`). A site is keyed by its session and
-the number the original code and figure scripts give it, the last four digits of its scan start
-time (`site`, `mod(aod_scan_start_time, 10000)`), so its key says which animal it comes from and
-matches the original code. A trial trace set has a simple number (`trace_set`) and refers to its
-site. The original identifiers are kept as unique attributes (`session_start_time`,
+setup, session and scan start times, preprocessing method, and stimulus set. Here a session and
+a site take the numbers the original code and figure scripts label sites by, the last four
+digits of their start times: `session` is `mod(session_start_time, 10000)`, and a site is keyed
+by its session and `site`, `mod(aod_scan_start_time, 10000)`, so its key says which animal it
+comes from and matches the original code. A trial trace set has a simple number (`trace_set`)
+and refers to its site; trace sets are numbered in the order of the published files, each file
+from the first number recorded in `SourceFile` (1, 17, 42, 57). Every number is fixed by its
+record or its file, so each import job reads only its own file and the jobs can run in any
+order; a session with records in two files is inserted by whichever job comes first. The
+original identifiers are kept as unique attributes (`session_start_time`,
 `aod_scan_start_time`), and the analysis tables are keyed by `trace_set`. The example site of
-Fig 3 (292 cells) is session 8, site 2031, with tuning set 27 and correlation set 28. Random
+Fig 3 (292 cells) is session 8828, site 2031, with tuning set 27 and correlation set 28. Random
 draws (the hyperparameter search, the tuning shuffles) are seeded from the scan identifier.
 
 **Subjects.** The published records carry a `subject_id`, but it is 16 in all 60 of them,
@@ -162,7 +166,7 @@ mkdir -p data/store            # the default object store in datajoint.json
 ```python
 from neurocorr.pipeline import covest, ingest
 
-ingest.SourceImport.populate()       # downloads the four data files (218 MB): 15 sessions, 31 sites, 60 trial trace sets in covest
+ingest.SourceImport.populate()       # one job per data file (218 MB in all): 15 sessions, 31 sites, 60 trial trace sets in covest
 covest.CellSelection.populate()      # 31 correlation sets; 27 keep more than 100 cells
 covest.OriTuning.populate()          # 29 tuning sets
 covest.CovMatrix.populate()          # every method, site, and fold

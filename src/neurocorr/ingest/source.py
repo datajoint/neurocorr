@@ -23,23 +23,28 @@ import numpy as np
 COV_EST_COMMIT = "eb60af1033931282d291a87120f85aa7731a70fb"
 COV_EST_RAW = f"https://raw.githubusercontent.com/atlab/cov-est/{COV_EST_COMMIT}/data"
 
-# file name and SHA-256 (30.6, 100.2, 66.6 and 30.8 MB)
+# file name, SHA-256, and number of records (30.6, 100.2, 66.6 and 30.8 MB); a file's records
+# are fixed by its hash
 SOURCE_FILES = [
     (
         "traces-pre5-0000.mat",
         "95f4cb2b09064eb5e2f702394304eb1c23540c295b8677ffc7a3dbbc018607ed",
+        16,
     ),
     (
         "traces-pre5-0001.mat",
         "c05004aff7c858fc717cfd22ca36003b4ff11f196d9d518ca4bf1f165cd92592",
+        25,
     ),
     (
         "traces-pre5-0002.mat",
         "5c8281698637195633046b6c944e3fe6c14bb35627126b5c523ba7ed97b211bf",
+        15,
     ),
     (
         "traces-pre5-0003.mat",
         "c337f9a4819f522a6be0ddb1d69a0325414a4cb8bb27651ea9215763fc973c42",
+        4,
     ),
 ]
 

@@ -86,4 +86,5 @@ def test_fetch_uses_a_verified_local_copy(tmp_path, monkeypatch):
 def test_source_files_are_pinned():
     assert len(source.SOURCE_FILES) == 4
     assert source.COV_EST_COMMIT in source.COV_EST_RAW
-    assert all(len(sha) == 64 for _, sha in source.SOURCE_FILES)
+    assert all(len(sha) == 64 for _, sha, _ in source.SOURCE_FILES)
+    assert sum(n for _, _, n in source.SOURCE_FILES) == 60
