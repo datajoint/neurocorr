@@ -284,9 +284,9 @@ class CovMatrix(dj.Compute):
     hypers = null   : <npy@>          # the chosen hyperparameter values
     delta           : float64        # variance regularization toward each cell's mean variance
     visited = null  : <npy@>          # grid indices visited by the hyperparameter search (0-based)
-    losses = null   : <npy@>          # mean inner validation loss at each visited index
+    losses = null   : <npy@>          # mean inner validation loss at each visited index, in nats per cell per bin
     sparsity = 0    : float64        # fraction of zero off-diagonal entries in the sparse component
-    cv_loss = null  : float64        # validation loss on the test trials of the fold (nfolds > 1)
+    cv_loss = null  : float64        # validation loss on the test trials of the fold (nfolds > 1), in nats per cell per bin (already per cell)
     host            : varchar(255)
     computing_time  : float32        # seconds
     cm_ts = CURRENT_TIMESTAMP : datetime
