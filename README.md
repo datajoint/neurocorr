@@ -151,6 +151,12 @@ chosen the same way.
   `Method.hyperparam_space` is JSON. `CovMatrix.test_matrix` (a copy of the test trials) is
   dropped, and so is `QuadLoss`, which is not in the paper.
 
+## The figures
+
+The paper's Figures 3 to 7 and panel A of Figure S1, drawn from this pipeline's results, are pages of
+the companion dashboard, [datajoint/neurocorr-dash](https://github.com/datajoint/neurocorr-dash)
+(MIT License). Each page reads the pipeline as it is, so it includes any site added later.
+
 ## Quick start
 
 ```bash
